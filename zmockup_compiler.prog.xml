@@ -14,8 +14,8 @@
    <TPOOL>
     <item>
      <ID>R</ID>
-     <ENTRY>Mockup loader builder util</ENTRY>
-     <LENGTH>26</LENGTH>
+     <ENTRY>Mockup compiler for mockup loader</ENTRY>
+     <LENGTH>33</LENGTH>
     </item>
    </TPOOL>
   </asx:values>
