@@ -2,15 +2,42 @@
 
 SAP native tool to compile zip from excels for [Mockup loader](https://github.com/sbcgua/mockup_loader) and upload it to mime storage. Supports watching (re-process on file change).
 
-Watching is supported to Excels but not for static includes at the moment. Maybe later ...
+So the process is:
+- you prepare mockup excels in a separate directory
+- run mockup compiler, specifiying this directory and target MIME object name (tr. `SMW0`)
+- optionally keep the program in watch mode - then any change to the source excels will be immediately recompiled and re-uploaded to SAP
+
+N.B. Watching is supported to Excels but not for static includes at the moment. Maybe later ...
+
+## Processing logic and Excel layout requirements
+
+1. Finds all `*.xlsx` in the given directory.
+2. In each file, searches for `_contents` sheet with 2 columns. The first is a name of another sheet in the workbook, the second includes the sheet into conversion if not empty. See example `test.xlsx` in the repo root.
+3. All the listed sheets are converted into tab-delimited text files in UTF8.
+    - each sheet should contain data, staring in A1 cell
+    - `'_'` prefixed columns at the beginning are ignored, can be used for some meta data
+    - columns after the first empty columns are ignored
+    - rows after the first empty row are ignored
+4. The resulting files are zipped and saved to target MIME object (which must exist by the time of compiler execution)
+5. The file path in the zip will be `<excel name uppercased>/<sheet name>.txt`
+6. If specified, files from `includes` directory explicitly added too
+
+N.B. General concept is also described [here](https://github.com/sbcgua/mockup_loader/blob/master/EXCEL2TXT.md). The old VB script will be soon removed from the original mockup loader repo.
 
 ## Dependencies:
-- [w3mimepoller](https://github.com/sbcgua/abap_w3mi_poller) - uses as a library as a lot of common code
-- [abap2xlsx](https://github.com/ivanfemia/abap2xlsx) (awesome tool ! my great regards to the author !)
-- [abapGit](https://github.com/larshp/abapGit) to install all above
-
-TODO: write normal readme ... ;)
+- [w3mimepoller](https://github.com/sbcgua/abap_w3mi_poller) - used as a library as a lot of common code
+- [abap2xlsx](https://github.com/ivanfemia/abap2xlsx) - native abap excel parser (awesome tool ! my great regards to the author !)
+- [abapGit](https://github.com/larshp/abapGit) - to install all above
 
 ## Screenshots
 
 ![screenshot](mc-screenshot.png)
+
+## Known issues
+
+- date is detected by the cell format style. Potentially not 100% reliable. Also at the moment converts unconditionally to `DD.MM.YYYY` form. To be improved.
+- fractional numbers are not rounded. Results sometimes in values like `16.670000000000002`. Though in my *productive* test suites (which have a lot of amounts) this does not cause issues. In other words, to be watched over.
+
+## P.S.
+
+There is also the [JS implementation](https://github.com/sbcgua/mockup-compiler-js) of the compiler. Wrote it just for fun to replace VB script ... works ~x10 faster than abap implementation, obviously due to lack of uploads of heavy excels over the network. It does not upload to SAP (though can be done via [w3mimepoller](https://github.com/sbcgua/abap_w3mi_poller)) so probably the abap implementation would fit usual scenarios more natively.
