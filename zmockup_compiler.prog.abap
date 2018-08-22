@@ -1052,7 +1052,7 @@ constants:
   GC_OBJ_PARAM_NAME TYPE CHAR20 VALUE 'ZMOCKUP_COMPILER_OBJ',
   GC_INC_PARAM_NAME TYPE CHAR20 VALUE 'ZMOCKUP_COMPILER_INC'.
 
-form main using pv_srcdir pv_incdir pv_mimename.
+form main using pv_srcdir pv_incdir pv_mimename pv_watch.
   data lo_app type ref to lcl_app.
   data lx type ref to cx_static_check.
   data l_str type string.
@@ -1071,12 +1071,13 @@ form main using pv_srcdir pv_incdir pv_mimename.
         iv_dir      = |{ pv_srcdir }|
         iv_include  = |{ pv_incdir }|
         iv_mime_key = |{ pv_mimename }|
-        iv_do_watch = abap_false.
+        iv_do_watch = pv_watch.
     lo_app->run( ).
 
-    zcl_w3mime_utils=>download(
-        iv_filename = 'c:\sap\test.zip'
-        iv_key = 'ZMLB_TEST' ).
+    " For debug
+*    zcl_w3mime_utils=>download(
+*        iv_filename = 'c:\sap\test.zip'
+*        iv_key = 'ZMLB_TEST' ).
 
   catch lcx_error zcx_w3mime_error into lx.
     l_str = lx->get_text( ).
@@ -1129,6 +1130,11 @@ parameters p_inc type char255 visible length 40.
 selection-screen comment (24) t_inc2.
 selection-screen end of line.
 
+selection-screen begin of line.
+selection-screen comment (24) t_watch for field p_watch.
+parameters p_watch type abap_bool as checkbox.
+selection-screen end of line.
+
 selection-screen end of block b1.
 
 initialization.
@@ -1138,6 +1144,7 @@ initialization.
   t_inc2   = '  (optional)'.              "#EC NOTEXT
   t_mime   = 'Target W3MI object'.        "#EC NOTEXT
   t_mime2  = '  (must be existing one)'.  "#EC NOTEXT
+  t_watch  = 'Keep watching source'.      "#EC NOTEXT
 
   get parameter id GC_DIR_PARAM_NAME field p_dir.
   get parameter id GC_INC_PARAM_NAME field p_inc.
@@ -1168,4 +1175,4 @@ at selection-screen on p_mime.
   endif.
 
 start-of-selection.
-  perform main using p_dir p_inc p_mime.
+  perform main using p_dir p_inc p_mime p_watch.
