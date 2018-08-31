@@ -441,67 +441,6 @@ class lcl_workbook_parser implementation.
 endclass.
 
 **********************************************************************
-* ZIP writer
-**********************************************************************
-
-class lcl_zip_writer definition final.
-  public section.
-    methods constructor.
-    methods add
-      importing
-        iv_filename type string
-        iv_data     type string.
-    methods addx
-      importing
-        iv_filename type string
-        iv_xdata    type xstring.
-    methods get_blob
-      returning value(rv_blob) type xstring.
-
-  private section.
-    data mo_zip  type ref to cl_abap_zip.
-    data mo_conv type ref to cl_abap_conv_out_ce.
-
-endclass.
-
-
-class lcl_zip_writer implementation.
-
-  method constructor.
-    create object mo_zip.
-    mo_conv = cl_abap_conv_out_ce=>create( encoding = '4110' ). " UTF8
-  endmethod.  " constructor.
-
-  method add.
-    data lv_xdata type xstring.
-    mo_conv->convert(
-      exporting data = iv_data
-      importing buffer = lv_xdata ).
-
-    mo_zip->delete(
-      exporting
-        name = iv_filename
-      exceptions others = 1 ). " ignore exceptions
-
-    mo_zip->add( name = iv_filename content = lv_xdata ).
-  endmethod.  " add.
-
-  method addx.
-    mo_zip->delete(
-      exporting
-        name = iv_filename
-      exceptions others = 1 ). " ignore exceptions
-
-    mo_zip->add( name = iv_filename content = iv_xdata ).
-  endmethod.  " addx.
-
-  method get_blob.
-    rv_blob = mo_zip->save( ).
-  endmethod.  " get_blob
-
-endclass.
-
-**********************************************************************
 * APP
 **********************************************************************
 
@@ -535,7 +474,7 @@ class lcl_app definition final.
   private section.
     data:
           mo_poller   type ref to zcl_w3mime_poller,
-          mo_zip      type ref to lcl_zip_writer,
+          mo_zip      type ref to zcl_w3mime_zip_writer,
           mv_dir      type string,
           mv_include  type string,
           mv_mime_key type wwwdata-objid.
@@ -781,8 +720,6 @@ class lcl_unit_tests definition final for testing
     methods clip_rows for testing.
     methods read_contents for testing.
     methods convert_sheet for testing.
-    methods zip for testing.
-    methods zip_overwrite for testing.
 
 endclass.
 
@@ -987,60 +924,6 @@ class lcl_unit_tests implementation.
       exp = |col1{ tab }col2{ lf }A{ tab }10{ lf }B{ tab }20| ).
 
   endmethod.  " convert_sheet.
-
-  method zip.
-    data lo_zipw type ref to lcl_zip_writer.
-    data lo_zip type ref to cl_abap_zip.
-    data lv_xdata type xstring.
-    data lv_data type string.
-
-    create object lo_zipw.
-    lo_zipw->add( iv_filename = 'dir/file.txt' iv_data = 'Hello' ).
-    lv_xdata = lo_zipw->get_blob( ).
-
-    create object lo_zip.
-    lo_zip->load( zip = lv_xdata ).
-    cl_abap_unit_assert=>assert_equals( act = lines( lo_zip->files ) exp = 1 ).
-
-    lo_zip->get( exporting  name = 'dir/file.txt' importing  content = lv_xdata ).
-    data lo_conv type ref to cl_abap_conv_in_ce.
-    lo_conv = cl_abap_conv_in_ce=>create( encoding = '4110' ).
-    lo_conv->convert( exporting input = lv_xdata importing data = lv_data ).
-
-    cl_abap_unit_assert=>assert_equals( act = lv_data exp = 'Hello' ).
-
-  endmethod.  " zip.
-
-  method zip_overwrite.
-    data lo_zipw type ref to lcl_zip_writer.
-    data lo_zip type ref to cl_abap_zip.
-    data lv_xdata type xstring.
-    data lv_data type string.
-
-    create object lo_zipw.
-    lo_zipw->add( iv_filename = 'dir/file.txt' iv_data = 'Hello' ).
-    lv_xdata = lo_zipw->get_blob( ).
-
-    create object lo_zip.
-    lo_zip->load( zip = lv_xdata ).
-    cl_abap_unit_assert=>assert_equals( act = lines( lo_zip->files ) exp = 1 ).
-
-    lo_zip->get( exporting  name = 'dir/file.txt' importing  content = lv_xdata ).
-    data lo_conv type ref to cl_abap_conv_in_ce.
-    lo_conv = cl_abap_conv_in_ce=>create( encoding = '4110' ).
-    lo_conv->convert( exporting input = lv_xdata importing data = lv_data ).
-
-    cl_abap_unit_assert=>assert_equals( act = lv_data exp = 'Hello' ).
-
-    lo_zipw->add( iv_filename = 'dir/file.txt' iv_data = 'Hello2' ).
-    lv_xdata = lo_zipw->get_blob( ).
-    lo_zip->load( zip = lv_xdata ).
-    cl_abap_unit_assert=>assert_equals( act = lines( lo_zip->files ) exp = 1 ).
-    lo_zip->get( exporting  name = 'dir/file.txt' importing  content = lv_xdata ).
-    lo_conv->convert( exporting input = lv_xdata importing data = lv_data ).
-    cl_abap_unit_assert=>assert_equals( act = lv_data exp = 'Hello2' ).
-
-  endmethod.  " zip_overwrite
 
 endclass.
 
