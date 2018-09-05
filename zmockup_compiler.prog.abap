@@ -548,6 +548,7 @@ class lcl_app implementation.
     lv_num_files = lines( lt_files ).
 
     loop at lt_files assigning <f>.
+      check not ( strlen( <f>-filename ) >= 2 and substring( val = <f>-filename len = 2 ) = '~$' ). " skip tmp
       write: /3 <f>-filename.
 
       cl_progress_indicator=>progress_indicate(
