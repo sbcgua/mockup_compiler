@@ -130,30 +130,33 @@ class lcl_workbook_parser implementation.
 
     " Get list of work sheets
     data lt_worksheets type tt_worksheets.
+    data lt_sheets_to_save type string_table.
     lt_worksheets = get_sheets_list( lo_excel ).
 
     " Check and read content
     field-symbols <ws> like line of lt_worksheets.
     read table lt_worksheets assigning <ws> with key title = content_sheet_name.
     if sy-subrc is not initial.
-      lcx_error=>raise( msg = 'Workbook does not contain _contents sheet' ). "#EC NOTEXT
+*      lcx_error=>raise( msg = 'Workbook does not contain _contents sheet' ). "#EC NOTEXT
+      loop at lt_worksheets assigning <ws>.
+        append <ws>-title to lt_sheets_to_save. " Just parse all
+      endloop.
+    else.
+      try.
+        lt_sheets_to_save = read_contents( <ws>-worksheet->sheet_content ).
+      catch zcx_excel into lx_xls.
+        lcx_error=>raise( 'Excel error: ' && lx_xls->get_text( ) ). "#EC NOTEXT
+      endtry.
+
+      " Check all sheets exist
+      field-symbols <sheet_name> like line of lt_sheets_to_save.
+      loop at lt_sheets_to_save assigning <sheet_name>.
+        read table lt_worksheets with key title = <sheet_name> transporting no fields.
+        if sy-subrc is not initial.
+          lcx_error=>raise( msg = |Workbook does not contain [{ <sheet_name> }] sheet| ). "#EC NOTEXT
+        endif.
+      endloop.
     endif.
-
-    try.
-      data lt_sheets_to_save type string_table.
-      lt_sheets_to_save = read_contents( <ws>-worksheet->sheet_content ).
-    catch zcx_excel into lx_xls.
-      lcx_error=>raise( 'Excel error: ' && lx_xls->get_text( ) ). "#EC NOTEXT
-    endtry.
-
-    " Check all sheets exist
-    field-symbols <sheet_name> like line of lt_sheets_to_save.
-    loop at lt_sheets_to_save assigning <sheet_name>.
-      read table lt_worksheets with key title = <sheet_name> transporting no fields.
-      if sy-subrc is not initial.
-        lcx_error=>raise( msg = |Workbook does not contain [{ <sheet_name> }] sheet| ). "#EC NOTEXT
-      endif.
-    endloop.
 
     data lt_date_styles type tt_uuid.
     lt_date_styles = find_date_styles( lo_excel ).
