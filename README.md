@@ -7,7 +7,11 @@ So the process is:
 - run mockup compiler, specifiying this directory and target MIME object name (tr. `SMW0`)
 - optionally keep the program in watch mode - then any change to the source excels will be immediately recompiled and re-uploaded to SAP
 
-N.B. Watching is supported to Excels but not for static includes at the moment. Maybe later ...
+N.B. Watching is supported both for Excels and include directories. New files are detected, but new directpries are not.
+
+### Meta data
+
+The mockup compiler adds meta data to the zip archive. It is stored in `.meta` subfolder. For the moment it keeps the source file timestamps. This speeds up  repeated compilations. However if there is more than 1 person working on the test data (so multiple sets of source files) this obviously might not work well. For this (or to reset meta data for any other reason) use `re-build` flag at the selection screen.
 
 ## Processing logic and Excel layout requirements
 
@@ -22,7 +26,7 @@ N.B. Watching is supported to Excels but not for static includes at the moment. 
 5. The file path in the zip will be `<excel name uppercased>/<sheet name>.txt`
 6. If specified, files from `includes` directory explicitly added too
 
-N.B. General concept is also described [here](https://github.com/sbcgua/mockup_loader/blob/master/EXCEL2TXT.md). The old VB script will be soon removed from the original mockup loader repo.
+N.B. General concept is also described [here](https://github.com/sbcgua/mockup_loader/blob/master/EXCEL2TXT.md).
 
 ## Dependencies:
 - [w3mimepoller](https://github.com/sbcgua/abap_w3mi_poller) - used as a library as a lot of common code
