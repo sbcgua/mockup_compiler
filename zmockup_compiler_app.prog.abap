@@ -6,6 +6,7 @@ class lcl_app definition final.
   public section.
 
     constants c_xlfile_mask type string value '*.xlsx'.
+    constants c_src_files_meta_path type string value '.meta/src_files'.
 
     methods constructor
       importing
@@ -79,8 +80,10 @@ class lcl_app definition final.
       returning value(rv_num) type i
       raising lcx_error zcx_w3mime_error.
 
-    methods write_meta.
-    methods read_meta.
+    methods write_meta
+      raising lcx_error zcx_w3mime_error.
+    methods read_meta
+      raising lcx_error zcx_w3mime_error.
     methods start_watcher
       raising lcx_error zcx_w3mime_error.
 
@@ -376,48 +379,30 @@ class lcl_app implementation.
   endmethod.
 
   method write_meta.
-    constants:
-      lc_tab like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab,
-      lc_lf like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline.
-
-    data lt_lines type string_table.
-    data ltmp type string.
-
-    " TODO replace with TEXT2TAB
-    field-symbols <m> like line of mt_src_ts.
-    loop at mt_src_ts assigning <m>.
-      ltmp = <m>-type && lc_tab && <m>-src_file && lc_tab && <m>-timestamp.
-      append ltmp to lt_lines.
-    endloop.
-
-    mo_zip->add(
-      iv_filename = '.meta/src_files'
-      iv_data     = concat_lines_of( table = lt_lines sep = lc_lf ) ).
+    data lx type ref to zcx_text2tab_error.
+    data l_tmp type string.
+    try.
+      l_tmp = zcl_text2tab_serializer=>create( )->serialize( mt_src_ts ).
+      mo_zip->add(
+        iv_filename = c_src_files_meta_path
+        iv_data     = l_tmp ).
+    catch zcx_text2tab_error into lx.
+      lcx_error=>raise( |Meta serialization failed: { lx->get_text( ) }| ).
+    endtry.
   endmethod.
 
   method read_meta.
-    constants:
-      lc_tab like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab,
-      lc_lf like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline.
-    data lv_src_files_blob type string.
-
+    data l_str type string.
     try.
-      lv_src_files_blob = mo_zip->read( '.meta/src_files' ).
-    catch zcx_w3mime_error.
+      l_str = mo_zip->read( c_src_files_meta_path ).
+      zcl_text2tab_parser=>create( mt_src_ts )->parse(
+        exporting
+          i_data        = l_str
+        importing
+          e_container   = mt_src_ts ).
+    catch zcx_w3mime_error zcx_text2tab_error.
       return. " Ignore errors
     endtry.
-
-    " TODO replace with TEXT2TAB
-    data lt_lines type string_table.
-    split lv_src_files_blob at lc_lf into table lt_lines.
-
-    data ls_src_ts like line of mt_src_ts.
-    field-symbols <i> type string.
-    loop at lt_lines assigning <i>.
-      split <i> at lc_tab into ls_src_ts-type ls_src_ts-src_file ls_src_ts-timestamp.
-      append ls_src_ts to mt_src_ts.
-    endloop.
-
   endmethod.
 
   method start_watcher.
