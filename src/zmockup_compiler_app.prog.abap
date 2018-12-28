@@ -40,6 +40,7 @@ class lcl_app definition final.
           mo_zip         type ref to zcl_w3mime_zip_writer,
           mv_dir         type string,
           mv_include_dir type string,
+          mv_rebuild     type abap_bool,
           mv_mime_key    type wwwdata-objid,
           mt_inc_dirs    type string_table.
 
@@ -54,6 +55,7 @@ class lcl_app definition final.
       raising lcx_error zcx_w3mime_error.
 
     methods update_mime_object
+      importing iv_update_mime_meta type abap_bool default abap_false
       raising lcx_error zcx_w3mime_error.
 
     class-methods fmt_dt
@@ -126,6 +128,7 @@ class lcl_app implementation.
     mv_dir         = zcl_w3mime_fs=>path_ensure_dir_tail( iv_dir ).
     mv_include_dir = zcl_w3mime_fs=>path_ensure_dir_tail( iv_include ).
     mv_do_watch    = iv_do_watch.
+    mv_rebuild     = iv_rebuild.
 
   endmethod.
 
@@ -144,7 +147,7 @@ class lcl_app implementation.
     write: /.
     if mo_zip->is_dirty( ) = abap_true.
       write_meta( ).
-      update_mime_object( ).
+      update_mime_object( mv_rebuild ).
       write: / 'MIME object updated:', mv_mime_key. "#EC NOTEXT
     else.
       write: / 'Changes not detected, update skipped'. "#EC NOTEXT
@@ -289,6 +292,15 @@ class lcl_app implementation.
   method update_mime_object.
     data lv_blob type xstring.
     lv_blob = mo_zip->get_blob( ).
+
+    if iv_update_mime_meta = abap_true.
+      zcl_w3mime_storage=>update_object_meta(
+        iv_key       = mv_mime_key
+        iv_filename  = 'mockup-compiler-build.zip'
+        iv_extension = '.zip'
+        iv_mime_type = 'application/zip' ).
+    endif.
+
     zcl_w3mime_storage=>update_object_x(
       iv_key  = mv_mime_key
       iv_data = lv_blob ).
