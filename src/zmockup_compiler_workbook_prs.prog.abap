@@ -70,7 +70,8 @@ class lcl_workbook_parser definition final
 
     class-methods clip_rows
       importing
-        it_content type zexcel_t_cell_data
+        it_content   type zexcel_t_cell_data
+        iv_start_row type i default 1
       changing
         cs_range type ty_range.
 
@@ -184,11 +185,11 @@ class lcl_workbook_parser implementation.
     data lt_data type string_table.
     data lt_values type string_table.
     data lv_temp_line type string.
-    do ls_range-row_max times. " starts from 1 always
+    do ls_range-row_max - ls_range-row_min + 1 times. " starts from 1 always
       lt_values = read_row(
         it_content     = it_content
         it_date_styles = it_date_styles
-        i_row          = sy-index
+        i_row          = sy-index + ls_range-row_min - 1
         i_colmin       = ls_range-col_min
         i_colmax       = ls_range-col_max ).
       lv_temp_line = concat_lines_of( table = lt_values sep = cl_abap_char_utilities=>horizontal_tab ).
@@ -324,8 +325,8 @@ class lcl_workbook_parser implementation.
   method clip_rows.
     data lv_is_empty type abap_bool.
 
-    cs_range-row_min = 1.
-    cs_range-row_max = 1.
+    cs_range-row_min = iv_start_row.
+    cs_range-row_max = iv_start_row.
 
     do.
       lv_is_empty = is_row_empty(
@@ -351,10 +352,21 @@ class lcl_workbook_parser implementation.
     endif.
 
     data lt_head type string_table.
+    data lv_start_row type i value 1.
+    field-symbols <cell> type string.
 
     lt_head = read_row(
       it_content = it_content
       i_row      = 1 ).
+
+    read table lt_head index 1 assigning <cell>.
+    if <cell>+0(1) = '#'. " Skip first comment row
+      lv_start_row = 2.
+      lt_head = read_row(
+        it_content = it_content
+        i_row      = 2 ).
+    endif.
+
     clip_header(
       exporting
         it_head = lt_head
@@ -366,7 +378,8 @@ class lcl_workbook_parser implementation.
 
     clip_rows(
       exporting
-        it_content = it_content
+        it_content   = it_content
+        iv_start_row = lv_start_row
       changing
         cs_range = rs_range ).
 
