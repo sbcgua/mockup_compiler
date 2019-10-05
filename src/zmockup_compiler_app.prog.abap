@@ -102,6 +102,14 @@ class lcl_app implementation.
       lcx_error=>raise( 'iv_dir must be specified' ). "#EC NOTEXT
     endif.
 
+    if cl_gui_frontend_services=>directory_exist( iv_dir ) = abap_false.
+      lcx_error=>raise( 'source dir does not exist' ). "#EC NOTEXT
+    endif.
+
+    if iv_include is not initial and cl_gui_frontend_services=>directory_exist( iv_include ) = abap_false.
+      lcx_error=>raise( 'include dir does not exist' ). "#EC NOTEXT
+    endif.
+
     if iv_include is not initial and zcl_w3mime_fs=>path_is_relative( iv_to = iv_dir iv_from = iv_include ) = abap_true.
       lcx_error=>raise( 'iv_dir cannot be relevant to iv_include' ). "#EC NOTEXT
     endif.
