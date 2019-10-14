@@ -2,10 +2,10 @@
 * WORKBOOK PARSER
 **********************************************************************
 
-class lcl_workbook_parser_test definition deferred.
+class ltcl_workbook_parser_test definition deferred.
 
 class lcl_workbook_parser definition final
-  friends lcl_workbook_parser_test.
+  friends ltcl_workbook_parser_test.
   public section.
     types:
       begin of ty_mock,
@@ -37,6 +37,7 @@ class lcl_workbook_parser definition final
       tt_uuid type standard table of uuid with default key.
 
     constants content_sheet_name type string value '_contents'.
+    constants exclude_sheet_name type string value '_exclude'.
 
     class-methods parse
       importing
@@ -44,12 +45,17 @@ class lcl_workbook_parser definition final
       returning value(rt_mocks) type tt_mocks
       raising lcx_error.
 
-
   private section.
     class-methods read_contents
       importing
         it_content type zexcel_t_cell_data
       returning value(rt_sheets_to_save) type string_table
+      raising lcx_error zcx_excel.
+
+    class-methods read_exclude
+      importing
+        it_exclude type zexcel_t_cell_data
+      returning value(rt_sheets_to_exclude) type string_table
       raising lcx_error zcx_excel.
 
     class-methods get_sheets_list
@@ -138,7 +144,6 @@ class lcl_workbook_parser implementation.
     field-symbols <ws> like line of lt_worksheets.
     read table lt_worksheets assigning <ws> with key title = content_sheet_name.
     if sy-subrc is not initial.
-*      lcx_error=>raise( msg = 'Workbook does not contain _contents sheet' ). "#EC NOTEXT
       loop at lt_worksheets assigning <ws>.
         append <ws>-title to lt_sheets_to_save. " Just parse all
       endloop.
@@ -155,6 +160,27 @@ class lcl_workbook_parser implementation.
         read table lt_worksheets with key title = <sheet_name> transporting no fields.
         if sy-subrc is not initial.
           lcx_error=>raise( msg = |Workbook does not contain [{ <sheet_name> }] sheet| ). "#EC NOTEXT
+        endif.
+      endloop.
+    endif.
+
+    " Read excludes
+    data lt_excludes type sorted table of string with non-unique key table_line.
+    read table lt_worksheets assigning <ws> with key title = exclude_sheet_name.
+    if sy-subrc = 0.
+      try.
+        lt_excludes = read_exclude( <ws>-worksheet->sheet_content ).
+      catch zcx_excel into lx_xls.
+        lcx_error=>raise( 'Excel error: ' && lx_xls->get_text( ) ). "#EC NOTEXT
+      endtry.
+
+      " exclude sheets
+      data lv_index type sy-tabix.
+      loop at lt_sheets_to_save assigning <sheet_name>.
+        lv_index = sy-tabix.
+        read table lt_excludes with key table_line = <sheet_name> transporting no fields.
+        if sy-subrc = 0 or <sheet_name> = exclude_sheet_name.
+          delete lt_sheets_to_save index lv_index.
         endif.
       endloop.
     endif.
@@ -417,19 +443,49 @@ class lcl_workbook_parser implementation.
 
   endmethod.  " read_contents.
 
+  method read_exclude.
+
+    data ls_range type ty_range.
+    ls_range = clip_range( it_exclude ).
+
+    if ls_range-col_max - ls_range-col_min + 1 < 1.
+      lcx_error=>raise( msg = '_exclude sheet must have at least 1 column' ). "#EC NOTEXT
+    endif.
+
+    if ls_range-row_max < 2.
+      lcx_error=>raise( msg = '_exclude sheet must have at least 1 sheet config' ). "#EC NOTEXT
+    endif.
+
+    ls_range-col_max = ls_range-col_min. " Consider only 1st column
+
+    data lt_values type string_table.
+    field-symbols <str> type string.
+    do ls_range-row_max - ls_range-row_min times.
+      lt_values = read_row(
+        it_content = it_exclude
+        i_row      = sy-index + 1
+        i_colmin   = ls_range-col_min
+        i_colmax   = ls_range-col_max ).
+      read table lt_values index 1 assigning <str>.
+      append <str> to rt_sheets_to_exclude.
+    enddo.
+
+  endmethod.  " read_exclude.
+
 endclass.
 
 **********************************************************************
 * UNIT TESTS
 **********************************************************************
 
-class lcl_workbook_parser_test definition final for testing
+class ltcl_workbook_parser_test definition final for testing
   duration short
   risk level harmless.
 
   private section.
     data mt_dummy_sheet type zexcel_t_cell_data.
     data mt_dummy_contents type zexcel_t_cell_data.
+    data mt_dummy_exclude type zexcel_t_cell_data.
 
     methods setup.
     methods read_row for testing.
@@ -438,10 +494,11 @@ class lcl_workbook_parser_test definition final for testing
     methods clip_rows for testing.
     methods read_contents for testing.
     methods convert_sheet for testing.
+    methods read_exclude for testing.
 
 endclass.
 
-class lcl_workbook_parser_test implementation.
+class ltcl_workbook_parser_test implementation.
 
   method setup.
 
@@ -483,6 +540,12 @@ class lcl_workbook_parser_test implementation.
     _add_cell mt_dummy_contents 4 1 'Sheet3'.
     _add_cell mt_dummy_contents 4 2 'X'.
 
+    " _exclude
+    _add_cell mt_dummy_exclude 1 1 'SheetName'.
+    _add_cell mt_dummy_exclude 1 2 'Some comment'.
+    _add_cell mt_dummy_exclude 2 1 'SheetX'.
+    _add_cell mt_dummy_exclude 2 2 'comment 1'.
+    _add_cell mt_dummy_exclude 3 1 'SheetY'.
 
   endmethod.   " setup.
 
@@ -642,5 +705,22 @@ class lcl_workbook_parser_test implementation.
       exp = |col1{ tab }col2{ lf }A{ tab }10{ lf }B{ tab }20| ).
 
   endmethod.  " convert_sheet.
+
+  method read_exclude.
+    data lt_act type string_table.
+    data lt_exp type string_table.
+
+    try .
+      lt_act = lcl_workbook_parser=>read_exclude( mt_dummy_exclude ).
+    catch lcx_error zcx_excel.
+      cl_abap_unit_assert=>fail( 'Unexpected error' ).
+    endtry.
+
+    append 'SheetX' to lt_exp.
+    append 'SheetY' to lt_exp.
+
+    cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
+
+  endmethod.  " read_exclude.
 
 endclass.
