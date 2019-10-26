@@ -29,9 +29,11 @@ The mockup compiler adds meta data to the zip archive. It is stored in `.meta` s
 N.B. General concept is also described [here](https://github.com/sbcgua/mockup_loader/blob/master/EXCEL2TXT.md).
 
 ## Dependencies:
-- [w3mimepoller](https://github.com/sbcgua/abap_w3mi_poller) - used as a library as a lot of common code
 - [abap2xlsx](https://github.com/ivanfemia/abap2xlsx) - native abap excel parser (awesome tool ! my great regards to the author !)
 - [abapGit](https://github.com/larshp/abapGit) - to install all above
+
+## Optional dependencies
+- [w3mimepoller](https://github.com/sbcgua/abap_w3mi_poller) - used as a library as a lot of common code. Since 2019-10 included as a contrib include `zmockup_compiler_w3mi_contrib.prog`. So not directly required anymore. But it is a nice tool, have a look ;)
 
 ## Screenshots
 
