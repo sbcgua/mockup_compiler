@@ -66,6 +66,10 @@ class lcl_app definition final.
       importing iv_filename type string
       returning value(rv_yes) type abap_bool.
 
+    class-methods get_excel_mock_folder_name
+      importing iv_path type string
+      returning value(rv_folder_name) type string.
+
     methods update_src_timestamp
       importing
         iv_type      type char1
@@ -208,6 +212,15 @@ class lcl_app implementation.
     endloop.
   endmethod.
 
+  method get_excel_mock_folder_name.
+    zcl_w3mime_fs=>parse_path(
+      exporting
+        iv_path = iv_path
+      importing
+        ev_filename = rv_folder_name ).
+    rv_folder_name = to_upper( rv_folder_name ).
+  endmethod.
+
   method process_excel.
     data lv_blob type xstring.
     lv_blob = zcl_w3mime_fs=>read_file_x( iv_path ).
@@ -217,12 +230,7 @@ class lcl_app implementation.
     lt_mocks = lcl_workbook_parser=>parse( lv_blob ).
 
     data lv_folder_name type string.
-    zcl_w3mime_fs=>parse_path(
-      exporting
-        iv_path = iv_path
-      importing
-        ev_filename = lv_folder_name ).
-    lv_folder_name = to_upper( lv_folder_name ).
+    lv_folder_name = get_excel_mock_folder_name( iv_path ).
 
     loop at lt_mocks assigning <mock>.
       <mock>-name = lv_folder_name && '/' && to_lower( <mock>-name ) && '.txt'.
