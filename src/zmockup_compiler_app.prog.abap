@@ -58,14 +58,6 @@ class lcl_app definition final.
       importing iv_update_mime_meta type abap_bool default abap_false
       raising lcx_error zcx_w3mime_error.
 
-    class-methods fmt_dt
-      importing iv_ts         type zcl_w3mime_poller=>ty_file_state-timestamp
-      returning value(rv_str) type string.
-
-    class-methods is_tempfile
-      importing iv_filename type string
-      returning value(rv_yes) type abap_bool.
-
     class-methods get_excel_mock_folder_name
       importing iv_path type string
       returning value(rv_folder_name) type string.
@@ -185,7 +177,7 @@ class lcl_app implementation.
     lv_num_files = lines( lt_files ).
 
     loop at lt_files assigning <f>.
-      if is_tempfile( |{ <f>-filename }| ) = abap_true.
+      if lcl_utils=>is_tempfile( |{ <f>-filename }| ) = abap_true.
         lv_num_files = lv_num_files - 1.
         continue.
       endif.
@@ -322,13 +314,6 @@ class lcl_app implementation.
       iv_data = lv_blob ).
   endmethod.  " update_mime_object.
 
-  method fmt_dt.
-    data ts type char14.
-    ts = iv_ts.
-    rv_str = |{ ts+0(4) }-{ ts+4(2) }-{ ts+6(2) } |
-          && |{ ts+8(2) }:{ ts+10(2) }:{ ts+12(2) }|.
-  endmethod.  " format_dt.
-
   method handle_changed.
     data lx           type ref to cx_static_check.
     data l_msg        type string.
@@ -347,7 +332,7 @@ class lcl_app implementation.
             ev_extension = l_ext ).
         l_fname = l_fname && l_ext.
 
-        check is_tempfile( l_fname ) <> abap_true.
+        check lcl_utils=>is_tempfile( l_fname ) <> abap_true.
         append l_fname to lt_filenames.
 
         if mv_include_dir is not initial
@@ -378,7 +363,7 @@ class lcl_app implementation.
     endtry.
 
     " Report result
-    l_msg = |{ fmt_dt( <i>-timestamp ) }: { concat_lines_of( table = lt_filenames sep = ', ' ) }|.
+    l_msg = |{ lcl_utils=>fmt_dt( <i>-timestamp ) }: { concat_lines_of( table = lt_filenames sep = ', ' ) }|.
     write / l_msg.
 
   endmethod.  "handle_changed
@@ -386,10 +371,6 @@ class lcl_app implementation.
   method handle_error.
     message error_text type 'E'.
   endmethod.  " handle_error.
-
-  method is_tempfile.
-    rv_yes = boolc( strlen( iv_filename ) >= 2 and substring( val = iv_filename len = 2 ) = '~$' ).
-  endmethod.
 
   method update_src_timestamp.
     field-symbols <m> like line of mt_src_ts.
@@ -426,6 +407,7 @@ class lcl_app implementation.
       zcl_text2tab_parser=>create( mt_src_ts )->parse(
         exporting
           i_data        = l_str
+          i_strict      = abap_false
         importing
           e_container   = mt_src_ts ).
     catch zcx_w3mime_error zcx_text2tab_error.
