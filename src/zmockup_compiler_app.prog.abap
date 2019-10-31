@@ -35,7 +35,7 @@ class lcl_app definition final.
 
     data:
           mv_do_watch    type abap_bool,
-          mt_src_ts      type tt_src_timestamp,
+          mo_meta        type ref to lcl_meta,
           mo_poller      type ref to zcl_w3mime_poller,
           mo_zip         type ref to zcl_w3mime_zip_writer,
           mv_dir         type string,
@@ -61,13 +61,6 @@ class lcl_app definition final.
     class-methods get_excel_mock_folder_name
       importing iv_path type string
       returning value(rv_folder_name) type string.
-
-    methods update_src_timestamp
-      importing
-        iv_type      type char1
-        iv_filename  type string
-        iv_timestamp type zcl_w3mime_poller=>ty_file_state-timestamp
-      returning value(rv_updated) type abap_bool.
 
     methods process_excel_dir
       raising lcx_error zcx_w3mime_error.
@@ -189,8 +182,8 @@ class lcl_app implementation.
         i_output_immediately = abap_true ).
 
       data lv_updated   type abap_bool.
-      lv_updated = update_src_timestamp(
-        iv_type      = 'X'
+      lv_updated = mo_meta->update(
+        iv_type      = lcl_meta=>c_type-excel
         iv_filename  = |{ <f>-filename }|
         iv_timestamp = <f>-writedate && <f>-writetime ).
 
@@ -281,8 +274,8 @@ class lcl_app implementation.
 
       if <f>-isdir is initial.
         data lv_updated type abap_bool.
-        lv_updated = update_src_timestamp(
-          iv_type      = 'I'
+        lv_updated = mo_meta->update(
+          iv_type      = lcl_meta=>c_type-include
           iv_filename  = zcl_w3mime_fs=>path_relative( iv_to = lv_full_path iv_from = mv_include_dir )
           iv_timestamp = <f>-writedate && <f>-writetime ).
         check lv_updated = abap_true.
@@ -338,14 +331,14 @@ class lcl_app implementation.
         if mv_include_dir is not initial
           and zcl_w3mime_fs=>path_is_relative( iv_to = <i>-path iv_from = mv_include_dir ) = abap_true.
           process_include( <i>-path ).
-          update_src_timestamp(
-            iv_type      = 'I'
+          mo_meta->update(
+            iv_type      = lcl_meta=>c_type-include
             iv_filename  = zcl_w3mime_fs=>path_relative( iv_to = <i>-path iv_from = mv_include_dir )
             iv_timestamp = <i>-timestamp ).
         else.
           process_excel( <i>-path ).
-          update_src_timestamp(
-            iv_type      = 'X'
+          mo_meta->update(
+            iv_type      = lcl_meta=>c_type-excel
             iv_filename  = l_fname
             iv_timestamp = <i>-timestamp ).
         endif.
@@ -372,45 +365,20 @@ class lcl_app implementation.
     message error_text type 'E'.
   endmethod.  " handle_error.
 
-  method update_src_timestamp.
-    field-symbols <m> like line of mt_src_ts.
-    read table mt_src_ts with key type = iv_type src_file = iv_filename assigning <m>.
-    if sy-subrc is not initial. " new file
-      append initial line to mt_src_ts assigning <m>.
-      <m>-type     = iv_type.
-      <m>-src_file = iv_filename.
-    endif.
-
-    if <m>-timestamp <> iv_timestamp.
-      <m>-timestamp = iv_timestamp.
-      rv_updated = abap_true.
-    endif.
-  endmethod.
-
   method write_meta.
-    data lx type ref to zcx_text2tab_error.
     data l_tmp type string.
-    try.
-      l_tmp = zcl_text2tab_serializer=>create( )->serialize( mt_src_ts ).
-      mo_zip->add(
-        iv_filename = c_src_files_meta_path
-        iv_data     = l_tmp ).
-    catch zcx_text2tab_error into lx.
-      lcx_error=>raise( |Meta serialization failed: { lx->get_text( ) }| ).
-    endtry.
+    l_tmp = mo_meta->serialize( ).
+    mo_zip->add(
+      iv_filename = c_src_files_meta_path
+      iv_data     = l_tmp ).
   endmethod.
 
   method read_meta.
     data l_str type string.
     try.
       l_str = mo_zip->read( c_src_files_meta_path ).
-      zcl_text2tab_parser=>create( mt_src_ts )->parse(
-        exporting
-          i_data        = l_str
-          i_strict      = abap_false
-        importing
-          e_container   = mt_src_ts ).
-    catch zcx_w3mime_error zcx_text2tab_error.
+      mo_meta = lcl_meta=>create( l_str ).
+    catch zcx_w3mime_error.
       return. " Ignore errors
     endtry.
   endmethod.
