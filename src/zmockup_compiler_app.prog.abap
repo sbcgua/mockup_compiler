@@ -47,11 +47,15 @@ class lcl_app definition final.
     methods process_excel
       importing
         iv_path type string
+      returning
+        value(rv_updated) type abap_bool
       raising lcx_error zcx_w3mime_error.
 
     methods process_include
       importing
         iv_path type string
+      returning
+        value(rv_updated) type abap_bool
       raising lcx_error zcx_w3mime_error.
 
     methods update_mime_object
@@ -189,32 +193,38 @@ class lcl_app implementation.
         i_output_immediately = abap_true ).
 
       data lv_updated   type abap_bool.
-      lv_updated = mo_meta->update(
-        iv_type      = lcl_meta=>c_type-excel
-        iv_filename  = |{ <f>-filename }|
-        iv_timestamp = <f>-writedate && <f>-writetime ).
+      lv_updated = process_excel( lv_path ).
 
       write: /3 <f>-filename.
       if lv_updated = abap_false.
         write at 50 '<skipped, meta timestamp unchanged>'. "#EC NOTEXT
         continue.
       endif.
-
-      process_excel( lv_path ).
     endloop.
   endmethod.
 
   method process_excel.
+
     data lv_blob type xstring.
-    lv_blob = zcl_w3mime_fs=>read_file_x( iv_path ).
-
     data lt_mocks type lcl_workbook_parser=>tt_mocks.
-    field-symbols <mock> like line of lt_mocks.
-    lt_mocks = lcl_workbook_parser=>parse( lv_blob ).
-
     data lv_folder_name type string.
-    lv_folder_name = lcl_utils=>get_uppercase_filename( iv_path ).
+    data lv_filename type string.
 
+    lv_blob  = zcl_w3mime_fs=>read_file_x( iv_path ).
+    lt_mocks = lcl_workbook_parser=>parse( lv_blob ).
+    lv_folder_name = lcl_utils=>get_uppercase_filename( iv_path ).
+    lv_filename    = lcl_utils=>get_full_filename( iv_path ).
+
+    rv_updated = mo_meta->update(
+      iv_type      = lcl_meta=>c_type-excel
+      iv_filename  = lv_filename
+      iv_blob      = lv_blob ).
+*      iv_timestamp = is_changed_file-timestamp ).
+    if rv_updated = abap_false.
+      return.
+    endif.
+
+    field-symbols <mock> like line of lt_mocks.
     loop at lt_mocks assigning <mock>.
       <mock>-name = lv_folder_name && '/' && to_lower( <mock>-name ) && '.txt'.
       mo_zip->add(
@@ -225,14 +235,27 @@ class lcl_app implementation.
   endmethod.  " process_excel.
 
   method process_include.
+
     if zcl_w3mime_fs=>path_is_relative( iv_to = iv_path iv_from = mv_include_dir ) <> abap_true.
       lcx_error=>raise( 'Unexpected include path' ).
     endif.
 
+    data lv_blob type xstring.
     data lv_relative_path type string.
+
+    lv_blob = zcl_w3mime_fs=>read_file_x( iv_path ).
     lv_relative_path = zcl_w3mime_fs=>path_relative(
       iv_from = mv_include_dir
       iv_to   = iv_path ).
+
+    rv_updated = mo_meta->update(
+      iv_type      = lcl_meta=>c_type-include
+      iv_filename  = lv_relative_path
+      iv_blob      = lv_blob ).
+*      iv_timestamp = is_changed_file-timestamp ).
+    if rv_updated = abap_false.
+      return.
+    endif.
 
     lv_relative_path = replace(
       val = lv_relative_path
@@ -242,7 +265,7 @@ class lcl_app implementation.
 
     mo_zip->addx(
       iv_filename = lv_relative_path
-      iv_xdata    = zcl_w3mime_fs=>read_file_x( iv_path )  ).
+      iv_xdata    = lv_blob  ).
 
   endmethod.
 
@@ -271,16 +294,12 @@ class lcl_app implementation.
         iv_p2 = |{ <f>-filename }| ).
 
       if <f>-isdir is initial.
-        data lv_updated type abap_bool.
-        lv_updated = mo_meta->update(
-          iv_type      = lcl_meta=>c_type-include
-          iv_filename  = zcl_w3mime_fs=>path_relative( iv_to = lv_full_path iv_from = mv_include_dir )
-          iv_timestamp = <f>-writedate && <f>-writetime ).
-        check lv_updated = abap_true.
-
         " TODO count skipped
-        process_include( lv_full_path ).
-        rv_num = rv_num + 1.
+        data lv_updated type abap_bool.
+        lv_updated = process_include( lv_full_path ).
+        if lv_updated = abap_true.
+          rv_num = rv_num + 1.
+        endif.
       else.
         rv_num = rv_num + process_includes_dir( lv_full_path ).
       endif.
@@ -305,21 +324,12 @@ class lcl_app implementation.
       iv_data = lv_blob ).
   endmethod.  " update_mime_object.
 
-
   method process_changed_file.
 
-    data l_filename type string.
-    data l_ext type string.
+    data lv_filename type string.
+    lv_filename = lcl_utils=>get_full_filename( is_changed_file-path ).
 
-    zcl_w3mime_fs=>parse_path(
-      exporting
-        iv_path = is_changed_file-path
-      importing
-        ev_filename  = l_filename
-        ev_extension = l_ext ).
-    l_filename = l_filename && l_ext.
-
-    if lcl_utils=>is_tempfile( l_filename ) = abap_true.
+    if lcl_utils=>is_tempfile( lv_filename ) = abap_true.
       return.
     endif.
 
@@ -330,21 +340,11 @@ class lcl_app implementation.
 
     if mv_include_dir is not initial and lv_is_include = abap_true.
       process_include( is_changed_file-path ).
-      mo_meta->update(
-        iv_type      = lcl_meta=>c_type-include
-        iv_filename  = zcl_w3mime_fs=>path_relative(
-          iv_to   = is_changed_file-path
-          iv_from = mv_include_dir )
-        iv_timestamp = is_changed_file-timestamp ).
     else.
       process_excel( is_changed_file-path ).
-      mo_meta->update(
-        iv_type      = lcl_meta=>c_type-excel
-        iv_filename  = l_filename
-        iv_timestamp = is_changed_file-timestamp ).
     endif.
 
-    rv_processed_filename = l_filename.
+    rv_processed_filename = lv_filename.
 
   endmethod.
 

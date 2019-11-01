@@ -27,9 +27,31 @@ class lcl_utils definition final.
     returning
       value(rv_folder_name) type string.
 
+  class-methods get_full_filename
+    importing
+      iv_path type string
+    returning
+      value(rv_filename) type string.
+
 endclass.
 
 class lcl_utils implementation.
+
+  method get_full_filename.
+
+    data l_filename type string.
+    data l_ext type string.
+
+    zcl_w3mime_fs=>parse_path(
+      exporting
+        iv_path = iv_path
+      importing
+        ev_filename  = l_filename
+        ev_extension = l_ext ).
+
+    rv_filename = l_filename && l_ext.
+
+  endmethod.
 
   method fmt_dt.
     data ts type char14.
