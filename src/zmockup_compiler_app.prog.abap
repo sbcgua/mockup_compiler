@@ -58,10 +58,6 @@ class lcl_app definition final.
       importing iv_update_mime_meta type abap_bool default abap_false
       raising lcx_error zcx_w3mime_error.
 
-    class-methods get_excel_mock_folder_name
-      importing iv_path type string
-      returning value(rv_folder_name) type string.
-
     methods process_excel_dir
       raising lcx_error zcx_w3mime_error.
 
@@ -77,6 +73,15 @@ class lcl_app definition final.
       raising lcx_error zcx_w3mime_error.
     methods start_watcher
       raising lcx_error zcx_w3mime_error.
+
+    methods process_changed_file
+      importing
+        is_changed_file type zcl_w3mime_poller=>ty_file_state
+      returning
+        value(rv_processed_filename) type string
+      raising
+        lcx_error
+        zcx_w3mime_error.
 
 endclass.
 
@@ -160,6 +165,7 @@ class lcl_app implementation.
 
   method process_excel_dir.
     data lt_files type zcl_w3mime_fs=>tt_files.
+    data lv_path type string.
     field-symbols <f> like line of lt_files.
 
     lt_files = zcl_w3mime_fs=>read_dir(
@@ -174,6 +180,7 @@ class lcl_app implementation.
         lv_num_files = lv_num_files - 1.
         continue.
       endif.
+      lv_path = mv_dir && <f>-filename.
 
       cl_progress_indicator=>progress_indicate(
         i_text               = | Processing XL { sy-tabix } / { lv_num_files }: { <f>-filename }| "#EC NOTEXT
@@ -193,17 +200,8 @@ class lcl_app implementation.
         continue.
       endif.
 
-      process_excel( mv_dir && <f>-filename ).
+      process_excel( lv_path ).
     endloop.
-  endmethod.
-
-  method get_excel_mock_folder_name.
-    zcl_w3mime_fs=>parse_path(
-      exporting
-        iv_path = iv_path
-      importing
-        ev_filename = rv_folder_name ).
-    rv_folder_name = to_upper( rv_folder_name ).
   endmethod.
 
   method process_excel.
@@ -215,7 +213,7 @@ class lcl_app implementation.
     lt_mocks = lcl_workbook_parser=>parse( lv_blob ).
 
     data lv_folder_name type string.
-    lv_folder_name = get_excel_mock_folder_name( iv_path ).
+    lv_folder_name = lcl_utils=>get_uppercase_filename( iv_path ).
 
     loop at lt_mocks assigning <mock>.
       <mock>-name = lv_folder_name && '/' && to_lower( <mock>-name ) && '.txt'.
@@ -307,40 +305,61 @@ class lcl_app implementation.
       iv_data = lv_blob ).
   endmethod.  " update_mime_object.
 
+
+  method process_changed_file.
+
+    data l_filename type string.
+    data l_ext type string.
+
+    zcl_w3mime_fs=>parse_path(
+      exporting
+        iv_path = is_changed_file-path
+      importing
+        ev_filename  = l_filename
+        ev_extension = l_ext ).
+    l_filename = l_filename && l_ext.
+
+    if lcl_utils=>is_tempfile( l_filename ) = abap_true.
+      return.
+    endif.
+
+    data lv_is_include type abap_bool.
+    lv_is_include = zcl_w3mime_fs=>path_is_relative(
+      iv_to   = is_changed_file-path
+      iv_from = mv_include_dir ).
+
+    if mv_include_dir is not initial and lv_is_include = abap_true.
+      process_include( is_changed_file-path ).
+      mo_meta->update(
+        iv_type      = lcl_meta=>c_type-include
+        iv_filename  = zcl_w3mime_fs=>path_relative(
+          iv_to   = is_changed_file-path
+          iv_from = mv_include_dir )
+        iv_timestamp = is_changed_file-timestamp ).
+    else.
+      process_excel( is_changed_file-path ).
+      mo_meta->update(
+        iv_type      = lcl_meta=>c_type-excel
+        iv_filename  = l_filename
+        iv_timestamp = is_changed_file-timestamp ).
+    endif.
+
+    rv_processed_filename = l_filename.
+
+  endmethod.
+
   method handle_changed.
     data lx           type ref to cx_static_check.
     data l_msg        type string.
     data lt_filenames type string_table.
+    data lv_filename  type string.
     field-symbols <i> like line of changed_list.
 
     try.
       loop at changed_list assigning <i>.
-        data l_fname type string.
-        data l_ext type string.
-        zcl_w3mime_fs=>parse_path(
-          exporting
-            iv_path = <i>-path
-          importing
-            ev_filename  = l_fname
-            ev_extension = l_ext ).
-        l_fname = l_fname && l_ext.
-
-        check lcl_utils=>is_tempfile( l_fname ) <> abap_true.
-        append l_fname to lt_filenames.
-
-        if mv_include_dir is not initial
-          and zcl_w3mime_fs=>path_is_relative( iv_to = <i>-path iv_from = mv_include_dir ) = abap_true.
-          process_include( <i>-path ).
-          mo_meta->update(
-            iv_type      = lcl_meta=>c_type-include
-            iv_filename  = zcl_w3mime_fs=>path_relative( iv_to = <i>-path iv_from = mv_include_dir )
-            iv_timestamp = <i>-timestamp ).
-        else.
-          process_excel( <i>-path ).
-          mo_meta->update(
-            iv_type      = lcl_meta=>c_type-excel
-            iv_filename  = l_fname
-            iv_timestamp = <i>-timestamp ).
+        lv_filename = process_changed_file( <i> ).
+        if lv_filename is not initial.
+          append lv_filename to lt_filenames.
         endif.
       endloop.
 
@@ -350,13 +369,16 @@ class lcl_app implementation.
 
       write_meta( ).
       update_mime_object( ).
+
+      " Report result
+      l_msg = |{ lcl_utils=>fmt_dt( <i>-timestamp ) }: { concat_lines_of( table = lt_filenames sep = ', ' ) }|.
+
     catch lcx_error zcx_w3mime_error into lx.
       l_msg = lx->get_text( ).
       message l_msg type 'E'.
+      l_msg = |Error: { l_msg }|.
     endtry.
 
-    " Report result
-    l_msg = |{ lcl_utils=>fmt_dt( <i>-timestamp ) }: { concat_lines_of( table = lt_filenames sep = ', ' ) }|.
     write / l_msg.
 
   endmethod.  "handle_changed

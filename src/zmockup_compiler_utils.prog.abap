@@ -20,6 +20,13 @@ class lcl_utils definition final.
       value(rv_hash) type hash160
     raising
       lcx_error.
+
+  class-methods get_uppercase_filename
+    importing
+      iv_path type string
+    returning
+      value(rv_folder_name) type string.
+
 endclass.
 
 class lcl_utils implementation.
@@ -55,6 +62,15 @@ class lcl_utils implementation.
 
     rv_hash = to_lower( lv_hash ).
 
+  endmethod.
+
+  method get_uppercase_filename.
+    zcl_w3mime_fs=>parse_path(
+      exporting
+        iv_path = iv_path
+      importing
+        ev_filename = rv_folder_name ).
+    rv_folder_name = to_upper( rv_folder_name ).
   endmethod.
 
 endclass.
