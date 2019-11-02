@@ -1,13 +1,15 @@
+[![Build Status](https://travis-ci.com/sbcgua/mockup_compiler.svg?branch=master)](https://travis-ci.com/sbcgua/mockup_compiler)
+
 # ABAP mockup compiler for Mockup loader
 
 SAP native tool to compile zip from excels for [Mockup loader](https://github.com/sbcgua/mockup_loader) and upload it to mime storage. Supports watching (re-process on file change).
 
 So the process is:
 - you prepare mockup excels in a separate directory
-- run mockup compiler, specifiying this directory and target MIME object name (tr. `SMW0`)
+- run mockup compiler, specifying this directory and target MIME object name (tr. `SMW0`)
 - optionally keep the program in watch mode - then any change to the source excels will be immediately recompiled and re-uploaded to SAP
 
-N.B. Watching is supported both for Excels and include directories. New files are detected, but new directpries are not.
+N.B. Watching is supported both for Excels and include directories. New files are detected, but new directories are not.
 
 ### Meta data
 
@@ -23,7 +25,7 @@ The mockup compiler adds meta data to the zip archive. It is stored in `.meta` s
     - columns after the first empty columns are ignored
     - rows after the first empty row are ignored
 4. The resulting files are zipped and saved to target MIME object (which must exist by the time of compiler execution)
-5. The file path in the zip will be `<excel name uppercased>/<sheet name>.txt`
+5. The file path in the zip will be `<excel name upper-cased>/<sheet name>.txt`
 6. If specified, files from `includes` directory explicitly added too
 
 N.B. General concept is also described [here](https://github.com/sbcgua/mockup_loader/blob/master/EXCEL2TXT.md).
