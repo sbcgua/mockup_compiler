@@ -34,8 +34,8 @@ class lcl_meta definition final create private.
     importing
       iv_type type ty_file_type
       iv_filename type string
-      iv_timestamp type zcl_w3mime_poller=>ty_file_state-timestamp
-      iv_blob type xstring optional
+      iv_timestamp type zcl_w3mime_poller=>ty_file_state-timestamp optional
+      iv_blob type xstring
     returning
       value(rv_has_changed) type abap_bool
     raising
@@ -75,6 +75,10 @@ class lcl_meta implementation.
 
   method update.
     field-symbols <m> like line of mt_src_ts.
+    data lv_sha1 like <m>-sha1.
+
+    lv_sha1 = lcl_utils=>sha1( iv_blob ).
+
     read table mt_src_ts assigning <m>
       with key
         type     = iv_type
@@ -83,12 +87,12 @@ class lcl_meta implementation.
       append initial line to mt_src_ts assigning <m>.
       <m>-type     = iv_type.
       <m>-src_file = iv_filename.
-      <m>-sha1     = lcl_utils=>sha1( iv_blob ).
     endif.
 
-    if <m>-timestamp <> iv_timestamp.
+*    if <m>-timestamp <> iv_timestamp.
+    if <m>-sha1 <> lv_sha1.
       <m>-timestamp = iv_timestamp.
-      <m>-sha1      = lcl_utils=>sha1( iv_blob ).
+      <m>-sha1      = lv_sha1.
       rv_has_changed = abap_true.
     endif.
   endmethod.
