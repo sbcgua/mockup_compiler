@@ -13,7 +13,7 @@ N.B. Watching is supported both for Excels and include directories. New files ar
 
 ### Meta data
 
-The mockup compiler adds meta data to the zip archive. It is stored in `.meta` subfolder. For the moment it keeps the source file timestamps. This speeds up  repeated compilations. However if there is more than 1 person working on the test data (so multiple sets of source files) this obviously might not work well. For this (or to reset meta data for any other reason) use `re-build` flag at the selection screen.
+The mockup compiler adds meta data to the zip archive. It is stored in `.meta` subfolder. For the moment it keeps the source file sha1. This speeds up repeated compilations and watching. However if there is more than 1 person working on the test data (so multiple sets of source files) this obviously might not work well. For this (or to reset meta data for any other reason) use `re-build` flag at the selection screen - this will rebuild the file from scratch.
 
 ## Processing logic and Excel layout requirements
 
