@@ -10,7 +10,6 @@ class ltcl_workbook_parser_test definition final for testing
     data mt_dummy_sheet    type lif_excel=>tt_sheet_content.
     data mt_dummy_contents type lif_excel=>tt_sheet_content.
     data mt_dummy_exclude  type lif_excel=>tt_sheet_content.
-*    data mt_dummy_exclude  type zexcel_t_cell_data.
 
     methods setup.
     methods read_row for testing.
@@ -20,6 +19,7 @@ class ltcl_workbook_parser_test definition final for testing
     methods read_contents for testing.
     methods convert_sheet for testing.
     methods read_exclude for testing.
+    " TODO integration test
 
 endclass.
 
