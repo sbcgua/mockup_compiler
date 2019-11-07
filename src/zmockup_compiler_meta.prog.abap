@@ -20,7 +20,7 @@ class lcl_meta definition final create private.
 
   class-methods create
     importing
-      iv_str type string
+      iv_str type string optional
     returning
       value(ro_meta) type ref to lcl_meta.
 
@@ -51,6 +51,10 @@ class lcl_meta implementation.
 
   method create.
     create object ro_meta.
+    if iv_str is initial.
+      return.
+    endif.
+
     try.
       zcl_text2tab_parser=>create( ro_meta->mt_src_ts )->parse(
         exporting

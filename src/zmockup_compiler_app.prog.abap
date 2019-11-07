@@ -128,6 +128,8 @@ class lcl_app implementation.
     create object mo_zip exporting io_zip = lo_zip.
     if lo_zip is bound.
       read_meta( ).
+    else.
+      mo_meta = lcl_meta=>create( ).
     endif.
 
     mv_mime_key    = iv_mime_key.

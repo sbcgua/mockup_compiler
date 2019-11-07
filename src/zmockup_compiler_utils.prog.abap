@@ -68,6 +68,8 @@ class lcl_utils implementation.
 
     data lv_hash type hash160.
 
+    " CL_ABAP_MESSAGE_DIGEST=>CALCULATE_HASH_FOR_RAW
+
     call function 'CALCULATE_HASH_FOR_RAW'
       exporting
         data           = iv_data
