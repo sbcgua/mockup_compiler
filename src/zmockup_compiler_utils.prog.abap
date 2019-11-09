@@ -66,23 +66,18 @@ class lcl_utils implementation.
 
   method sha1.
 
-    data lv_hash type hash160.
+    data lv_hash type string.
 
-    " CL_ABAP_MESSAGE_DIGEST=>CALCULATE_HASH_FOR_RAW
-
-    call function 'CALCULATE_HASH_FOR_RAW'
-      exporting
-        data           = iv_data
-      importing
-        hash           = lv_hash
-      exceptions
-        unknown_alg    = 1
-        param_error    = 2
-        internal_error = 3
-        others         = 4.
-    if sy-subrc <> 0.
+    try .
+      cl_abap_message_digest=>calculate_hash_for_raw(
+        exporting
+          if_algorithm = 'SHA1'
+          if_data      = iv_data
+        importing
+          ef_hashstring = lv_hash ).
+    catch cx_abap_message_digest.
       lcx_error=>raise( 'sha1 calculation error' ).
-    endif.
+    endtry.
 
     rv_hash = to_lower( lv_hash ).
 
