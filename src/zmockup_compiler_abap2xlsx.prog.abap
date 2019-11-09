@@ -41,22 +41,21 @@ class lcl_excel_abap2xlsx implementation.
 
   method lif_excel~get_sheet_names.
 
+    data lo_iter type ref to cl_object_collection_iterator.
     field-symbols <w> like line of mt_worksheets.
-    if mt_worksheets is not initial.
-      loop at mt_worksheets assigning <w>.
-        append <w>-title to rt_sheet_names.
-      endloop.
-      return.
+
+    if mt_worksheets is initial.
+      lo_iter = mo_excel->get_worksheets_iterator( ).
+      while lo_iter->has_next( ) is not initial.
+        append initial line to mt_worksheets assigning <w>.
+        <w>-worksheet ?= lo_iter->get_next( ).
+        <w>-title      = <w>-worksheet->get_title( ).
+      endwhile.
     endif.
 
-    data lo_iter type ref to cl_object_collection_iterator.
-
-    lo_iter = mo_excel->get_worksheets_iterator( ).
-    while lo_iter->has_next( ) is not initial.
-      append initial line to mt_worksheets assigning <w>.
-      <w>-worksheet ?= lo_iter->get_next( ).
-      <w>-title      = <w>-worksheet->get_title( ).
-    endwhile.
+    loop at mt_worksheets assigning <w>.
+      append <w>-title to rt_sheet_names.
+    endloop.
 
   endmethod.
 
