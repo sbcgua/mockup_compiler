@@ -43,6 +43,7 @@ include zmockup_compiler_w3mi_contrib.
 include zmockup_compiler_utils.
 include zmockup_compiler_meta.
 include zmockup_compiler_workbook_prs.
+include zmockup_compiler_frontend_hash.
 include zmockup_compiler_app.
 
 **********************************************************************
@@ -53,7 +54,7 @@ constants:
   GC_OBJ_PARAM_NAME TYPE CHAR20 VALUE 'ZMOCKUP_COMPILER_OBJ',
   GC_INC_PARAM_NAME TYPE CHAR20 VALUE 'ZMOCKUP_COMPILER_INC'.
 
-form main using pv_srcdir pv_incdir pv_mimename pv_watch pv_rebuild.
+form main using pv_srcdir pv_incdir pv_mimename pv_watch pv_rebuild pv_fehash.
   data lo_app type ref to lcl_app.
   data lx type ref to cx_static_check.
   data l_str type string.
@@ -73,6 +74,7 @@ form main using pv_srcdir pv_incdir pv_mimename pv_watch pv_rebuild.
         iv_include  = |{ pv_incdir }|
         iv_mime_key = |{ pv_mimename }|
         iv_rebuild  = pv_rebuild
+        iv_fe_hash  = pv_fehash
         iv_do_watch = pv_watch.
     lo_app->run( ).
 
@@ -111,31 +113,36 @@ endform.
 selection-screen begin of block b1 with frame title txt_b1.
 
 selection-screen begin of line.
-selection-screen comment (24) t_mime for field p_mime.
+selection-screen comment (30) t_mime for field p_mime.
 parameters p_mime type w3objid visible length 40.
-selection-screen comment (24) t_mime2.
+selection-screen comment (30) t_mime2.
 selection-screen end of line.
 
 selection-screen begin of line.
-selection-screen comment (24) t_dir for field p_dir.
+selection-screen comment (30) t_dir for field p_dir.
 parameters p_dir type char255 visible length 40.
 selection-screen end of line.
 
 selection-screen begin of line.
-selection-screen comment (24) t_inc for field p_inc.
+selection-screen comment (30) t_inc for field p_inc.
 parameters p_inc type char255 visible length 40.
-selection-screen comment (24) t_inc2.
+selection-screen comment (30) t_inc2.
 selection-screen end of line.
 
 selection-screen begin of line.
-selection-screen comment (24) t_watch for field p_watch.
+selection-screen comment (30) t_watch for field p_watch.
 parameters p_watch type abap_bool as checkbox.
 selection-screen end of line.
 
 selection-screen begin of line.
-selection-screen comment (24) t_rebld for field p_rebld.
+selection-screen comment (30) t_rebld for field p_rebld.
 parameters p_rebld type abap_bool as checkbox.
 selection-screen comment (40) t_rebld2.
+selection-screen end of line.
+
+selection-screen begin of line.
+selection-screen comment (30) t_fehash for field p_fehash.
+parameters p_fehash type abap_bool as checkbox.
 selection-screen end of line.
 
 selection-screen end of block b1.
@@ -150,6 +157,7 @@ initialization.
   t_watch  = 'Keep watching source'.      "#EC NOTEXT
   t_rebld  = 'Re-build from scratch'.     "#EC NOTEXT
   t_rebld2 = '  (Ignore metadata)'.       "#EC NOTEXT
+  t_fehash = 'Experimental frontend hash'."#EC NOTEXT
 
   get parameter id GC_DIR_PARAM_NAME field p_dir.
   get parameter id GC_INC_PARAM_NAME field p_inc.
@@ -180,4 +188,4 @@ at selection-screen on p_mime.
   endif.
 
 start-of-selection.
-  perform main using p_dir p_inc p_mime p_watch p_rebld.
+  perform main using p_dir p_inc p_mime p_watch p_rebld p_fehash.

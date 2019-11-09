@@ -41,6 +41,12 @@ class lcl_meta definition final create private.
     raising
       lcx_error.
 
+  methods get_file_hash
+    importing
+      iv_filename type string
+    returning
+      value(rv_hash) type string.
+
   private section.
     data mt_src_ts type tt_src_timestamp.
 
@@ -48,6 +54,14 @@ class lcl_meta definition final create private.
 endclass.
 
 class lcl_meta implementation.
+
+  method get_file_hash.
+    field-symbols <ts> like line of mt_src_ts.
+    read table mt_src_ts assigning <ts> with key src_file = iv_filename.
+    if sy-subrc = 0.
+      rv_hash = <ts>-sha1.
+    endif.
+  endmethod.
 
   method create.
     create object ro_meta.

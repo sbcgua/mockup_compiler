@@ -15,6 +15,7 @@ class lcl_app definition final.
         iv_mime_key type string
         iv_rebuild  type abap_bool default abap_false
         iv_do_watch type abap_bool default abap_false
+        iv_fe_hash  type abap_bool default abap_false
       raising lcx_error zcx_w3mime_error.
 
     methods run
@@ -35,6 +36,7 @@ class lcl_app definition final.
 
     data:
           mv_do_watch    type abap_bool,
+          mo_frontend_hash type ref to lcl_frontend_hash,
           mo_meta        type ref to lcl_meta,
           mo_poller      type ref to zcl_w3mime_poller,
           mo_zip         type ref to zcl_w3mime_zip_writer,
@@ -138,6 +140,10 @@ class lcl_app implementation.
     mv_do_watch    = iv_do_watch.
     mv_rebuild     = iv_rebuild.
 
+    if iv_fe_hash = abap_true.
+      create object mo_frontend_hash.
+    endif.
+
   endmethod.
 
   method run.
@@ -212,10 +218,19 @@ class lcl_app implementation.
     data lv_folder_name type string.
     data lv_filename type string.
 
-    lv_blob  = zcl_w3mime_fs=>read_file_x( iv_path ).
-    lt_mocks = lcl_workbook_parser=>parse( lv_blob ).
     lv_folder_name = lcl_utils=>get_uppercase_filename( iv_path ).
     lv_filename    = lcl_utils=>get_full_filename( iv_path ).
+
+    if mo_frontend_hash is bound and mo_frontend_hash->is_working( ) = abap_true.
+      data lv_current_hash type string.
+      lv_current_hash = mo_meta->get_file_hash( lv_filename ).
+      if lv_current_hash = mo_frontend_hash->get_hash( iv_path ).
+        return.
+      endif.
+    endif.
+
+    lv_blob  = zcl_w3mime_fs=>read_file_x( iv_path ).
+    lt_mocks = lcl_workbook_parser=>parse( lv_blob ).
 
     rv_updated = mo_meta->update(
       iv_type      = lcl_meta=>c_type-excel
@@ -245,11 +260,19 @@ class lcl_app implementation.
     data lv_blob type xstring.
     data lv_relative_path type string.
 
-    lv_blob = zcl_w3mime_fs=>read_file_x( iv_path ).
     lv_relative_path = zcl_w3mime_fs=>path_relative(
       iv_from = mv_include_dir
       iv_to   = iv_path ).
 
+    if mo_frontend_hash is bound and mo_frontend_hash->is_working( ) = abap_true.
+      data lv_current_hash type string.
+      lv_current_hash = mo_meta->get_file_hash( lv_relative_path ).
+      if lv_current_hash = mo_frontend_hash->get_hash( iv_path ).
+        return.
+      endif.
+    endif.
+
+    lv_blob    = zcl_w3mime_fs=>read_file_x( iv_path ).
     rv_updated = mo_meta->update(
       iv_type      = lcl_meta=>c_type-include
       iv_filename  = lv_relative_path
