@@ -401,10 +401,10 @@ class lcl_app implementation.
     data l_str type string.
     try.
       l_str = mo_zip->read( c_src_files_meta_path ).
-      mo_meta = lcl_meta=>create( l_str ).
     catch zcx_w3mime_error.
-      return. " Ignore errors
+      " Ignore errors
     endtry.
+    mo_meta = lcl_meta=>create( l_str ).
   endmethod.
 
   method start_watcher.
