@@ -9,6 +9,14 @@ class lcl_excel_abap2xlsx definition final.
       end of ty_ws_item,
       tt_worksheets type standard table of ty_ws_item with key title.
 
+    types:
+      begin of ty_style_map,
+        uuid type uuid,
+        index type i,
+        format type lif_excel=>ty_style-format,
+      end of ty_style_map,
+      th_style_map type hashed table of ty_style_map with unique key uuid.
+
     class-methods load
       importing
         iv_xdata type xstring
@@ -19,6 +27,8 @@ class lcl_excel_abap2xlsx definition final.
   private section.
     data mo_excel type ref to zcl_excel.
     data mt_worksheets type tt_worksheets.
+    data mt_style_map type th_style_map.
+    methods build_style_map.
 endclass.
 
 class lcl_excel_abap2xlsx implementation.
@@ -68,30 +78,63 @@ class lcl_excel_abap2xlsx implementation.
       lcx_excel=>excel_error( msg = |Workbook does not contain [{ iv_sheet_name }] sheet| ). "#EC NOTEXT
     endif.
 
+    if mt_style_map is initial.
+      build_style_map( ).
+    endif.
+
     field-symbols <src> like line of <w>-worksheet->sheet_content.
     field-symbols <dst> like line of rt_content.
+    field-symbols <style> like line of mt_style_map.
+
     loop at <w>-worksheet->sheet_content assigning <src>.
       append initial line to rt_content assigning <dst>.
-      move-corresponding <src> to <dst>.
+      <dst>-cell_row    = <src>-cell_row.
+      <dst>-cell_column = <src>-cell_column.
+      <dst>-cell_value  = <src>-cell_value.
+      <dst>-cell_coords = <src>-cell_coords.
+      <dst>-data_type   = <src>-data_type.
+      read table mt_style_map assigning <style> with key uuid = <src>-cell_style.
+      if sy-subrc = 0.
+        <dst>-cell_style = <style>-index.
+      endif.
     endloop.
 
   endmethod.
 
   method lif_excel~get_styles.
 
+    if mt_style_map is initial.
+      build_style_map( ).
+    endif.
+
+    field-symbols <src> like line of mt_style_map.
+    field-symbols <dst> like line of rt_styles.
+
+    loop at mt_style_map assigning <src>.
+      append initial line to rt_styles assigning <dst>.
+      <dst>-id     = <src>-index.
+      <dst>-format = <src>-format.
+    endloop.
+
+    sort rt_styles by id.
+
+  endmethod.
+
+  method build_style_map.
+
     data:
       lo_style type ref to zcl_excel_style,
       lo_iter  type ref to cl_object_collection_iterator.
-    field-symbols <s> like line of rt_styles.
+    data style_map like line of mt_style_map.
 
     lo_iter = mo_excel->get_styles_iterator( ).
     while lo_iter->has_next( ) is not initial.
+      style_map-index = sy-index.
       lo_style ?= lo_iter->get_next( ).
-      append initial line to rt_styles assigning <s>.
-      <s>-id = lo_style->get_guid( ).
-      <s>-format = lo_style->number_format->format_code.
+      style_map-uuid   = lo_style->get_guid( ).
+      style_map-format = lo_style->number_format->format_code.
+      insert style_map into table mt_style_map.
     endwhile.
-
   endmethod.
 
 endclass.
@@ -119,8 +162,6 @@ class ltcl_excel_abap2xlsx definition final
     methods assert_styles importing ii_excel type ref to lif_excel raising lcx_excel.
     methods assert_content importing ii_excel type ref to lif_excel raising lcx_excel.
     methods get_expected_content returning value(rs_content_samples) type ty_content_sample.
-
-    methods clear_styles changing ct_content type lif_excel=>tt_sheet_content.
 endclass.
 
 class ltcl_excel_abap2xlsx implementation.
@@ -162,22 +203,15 @@ class ltcl_excel_abap2xlsx implementation.
     data style like line of lt_act.
 
     lt_act = ii_excel->get_styles( ).
-    read table lt_act into style index 7.
+    read table lt_act into style index 6.
 
     cl_abap_unit_assert=>assert_equals(
       act = lines( lt_act )
-      exp = 8 ).
+      exp = 7 ).
     cl_abap_unit_assert=>assert_equals(
       act = style-format
       exp = 'mm-dd-yy' ).
 
-  endmethod.
-
-  method clear_styles.
-    field-symbols <c> like line of ct_content.
-    loop at ct_content assigning <c>.
-      clear <c>-cell_style.
-    endloop.
   endmethod.
 
   method assert_content.
@@ -186,33 +220,22 @@ class ltcl_excel_abap2xlsx implementation.
     data lt_act type lif_excel=>tt_sheet_content.
     ls_samples = get_expected_content( ).
 
-    clear_styles( changing ct_content = ls_samples-contents ).
-    clear_styles( changing ct_content = ls_samples-excludes ).
-    clear_styles( changing ct_content = ls_samples-simple ).
-    clear_styles( changing ct_content = ls_samples-with_dates ).
-
     lt_act = ii_excel->get_sheet_content( '_contents' ).
-    clear_styles( changing ct_content = lt_act ).
     cl_abap_unit_assert=>assert_equals( act = lt_act exp = ls_samples-contents ).
 
     lt_act = ii_excel->get_sheet_content( '_exclude' ).
-    clear_styles( changing ct_content = lt_act ).
     cl_abap_unit_assert=>assert_equals( act = lt_act exp = ls_samples-excludes ).
 
     lt_act = ii_excel->get_sheet_content( 'Sheet1' ).
-    clear_styles( changing ct_content = lt_act ).
     cl_abap_unit_assert=>assert_equals( act = lt_act exp = ls_samples-simple ).
 
     lt_act = ii_excel->get_sheet_content( 'Sheet2' ).
-    clear_styles( changing ct_content = lt_act ).
     cl_abap_unit_assert=>assert_equals( act = lt_act exp = ls_samples-with_dates ).
 
     lt_act = ii_excel->get_sheet_content( 'Sheet3' ).
-    clear_styles( changing ct_content = lt_act ).
     cl_abap_unit_assert=>assert_equals( act = lt_act exp = ls_samples-with_dates ).
 
     lt_act = ii_excel->get_sheet_content( 'Sheet4' ).
-    clear_styles( changing ct_content = lt_act ).
     cl_abap_unit_assert=>assert_equals( act = lt_act exp = ls_samples-with_dates ).
 
   endmethod.
@@ -232,48 +255,48 @@ class ltcl_excel_abap2xlsx implementation.
     end-of-definition.
 
     clear lt_content.
-    _add_cell 1 1 'Content'    'A1'  '0230522560691EEA84F5D3267CA7FD65'  's'.
-    _add_cell 1 2 'SaveToText' 'B1'  '0230522560691EEA84F5D3267CA7FD65'  's'.
-    _add_cell 2 1 'Sheet1'     'A2'  '00000000000000000000000000000000'  's'.
-    _add_cell 2 2 'X'          'B2'  '00000000000000000000000000000000'  's'.
-    _add_cell 3 1 'Sheet2'     'A3'  '00000000000000000000000000000000'  's'.
-    _add_cell 4 1 'Sheet3'     'A4'  '00000000000000000000000000000000'  's'.
-    _add_cell 4 2 'X'          'B4'  '00000000000000000000000000000000'  's'.
-    _add_cell 5 1 'Sheet4'     'A5'  '00000000000000000000000000000000'  's'.
-    _add_cell 5 2 'X'          'B5'  '00000000000000000000000000000000'  's'.
+    _add_cell 1 1 'Content'    'A1'  4  's'.
+    _add_cell 1 2 'SaveToText' 'B1'  4  's'.
+    _add_cell 2 1 'Sheet1'     'A2'  0  's'.
+    _add_cell 2 2 'X'          'B2'  0  's'.
+    _add_cell 3 1 'Sheet2'     'A3'  0  's'.
+    _add_cell 4 1 'Sheet3'     'A4'  0  's'.
+    _add_cell 4 2 'X'          'B4'  0  's'.
+    _add_cell 5 1 'Sheet4'     'A5'  0  's'.
+    _add_cell 5 2 'X'          'B5'  0  's'.
     rs_content_samples-contents = lt_content.
 
     clear lt_content.
-    _add_cell 1 1 'to_exclude' 'A1' '0230522560691EEA84F5D3267CA87D65'  's'.
-    _add_cell 2 1 'Sheet3'     'A2' '00000000000000000000000000000000'  's'.
+    _add_cell 1 1 'to_exclude' 'A1' 7  's'.
+    _add_cell 2 1 'Sheet3'     'A2' 0  's'.
     rs_content_samples-excludes = lt_content.
 
     clear lt_content.
-    _add_cell 1 1 'Column1'   'A1' '0230522560691EEA84F5D3267CA7FD65' 's'.
-    _add_cell 1 2 'Column2'   'B1' '0230522560691EEA84F5D3267CA7FD65' 's'.
-    _add_cell 2 1 'A'         'A2' '00000000000000000000000000000000' 's'.
-    _add_cell 2 2 '1'         'B2' '0230522560691EEA84F5D3267CA81D65' ''.
-    _add_cell 3 1 'B'         'A3' '00000000000000000000000000000000' 's'.
-    _add_cell 3 2 '2'         'B3' '00000000000000000000000000000000' ''.
-    _add_cell 4 1 'C'         'A4' '00000000000000000000000000000000' 's'.
-    _add_cell 4 2 '3'         'B4' '00000000000000000000000000000000' ''.
-    _add_cell 6 1 'More_data' 'A6' '00000000000000000000000000000000' 's'.
-    _add_cell 6 2 'to_skip'   'B6' '00000000000000000000000000000000' 's'.
+    _add_cell 1 1 'Column1'   'A1' 4 's'.
+    _add_cell 1 2 'Column2'   'B1' 4 's'.
+    _add_cell 2 1 'A'         'A2' 0 's'.
+    _add_cell 2 2 '1'         'B2' 5 ''.
+    _add_cell 3 1 'B'         'A3' 0 's'.
+    _add_cell 3 2 '2'         'B3' 0 ''.
+    _add_cell 4 1 'C'         'A4' 0 's'.
+    _add_cell 4 2 '3'         'B4' 0 ''.
+    _add_cell 6 1 'More_data' 'A6' 0 's'.
+    _add_cell 6 2 'to_skip'   'B6' 0 's'.
     rs_content_samples-simple = lt_content.
 
     clear lt_content.
-    _add_cell 1 1 'A'     'A1' '0230522560691EEA84F5D3267CA7FD65' 's'.
-    _add_cell 1 2 'B'     'B1' '0230522560691EEA84F5D3267CA7FD65' 's'.
-    _add_cell 1 3 'C'     'C1' '0230522560691EEA84F5D3267CA7FD65' 's'.
-    _add_cell 1 4 'D'     'D1' '0230522560691EEA84F5D3267CA7FD65' 's'.
-    _add_cell 2 1 'Vasya' 'A2' '00000000000000000000000000000000' 's'.
-    _add_cell 2 2 '43344' 'B2' '0230522560691EEA84F5D3267CA85D65' ''.
-    _add_cell 2 3 '15'    'C2' '00000000000000000000000000000000' ''.
-    _add_cell 2 4 '1'     'D2' '00000000000000000000000000000000' 'b'.
-    _add_cell 3 1 'Petya' 'A3' '00000000000000000000000000000000' 's'.
-    _add_cell 3 2 '43345' 'B3' '0230522560691EEA84F5D3267CA85D65' ''.
-    _add_cell 3 3 '16.37' 'C3' '0230522560691EEA84F5D3267CA83D65' ''.
-    _add_cell 3 4 '0'     'D3' '00000000000000000000000000000000' 'b'.
+    _add_cell 1 1 'A'     'A1' 4 's'.
+    _add_cell 1 2 'B'     'B1' 4 's'.
+    _add_cell 1 3 'C'     'C1' 4 's'.
+    _add_cell 1 4 'D'     'D1' 4 's'.
+    _add_cell 2 1 'Vasya' 'A2' 0 's'.
+    _add_cell 2 2 '43344' 'B2' 6 ''.
+    _add_cell 2 3 '15'    'C2' 0 ''.
+    _add_cell 2 4 '1'     'D2' 0 'b'.
+    _add_cell 3 1 'Petya' 'A3' 0 's'.
+    _add_cell 3 2 '43345' 'B3' 6 ''.
+    _add_cell 3 3 '16.37' 'C3' 0 ''.
+    _add_cell 3 4 '0'     'D3' 0 'b'.
     rs_content_samples-with_dates = lt_content.
 
   endmethod.

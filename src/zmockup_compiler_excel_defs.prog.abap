@@ -25,14 +25,14 @@ interface lif_excel.
       cell_column type int4,
       cell_value  type string,
       cell_coords type string,
-      cell_style  type uuid,
+      cell_style  type i,
       data_type   type string,
     end of ty_sheet_content,
     tt_sheet_content type standard table of ty_sheet_content with default key.
 
   types:
     begin of ty_style,
-      id     type uuid,
+      id     type i,
       format type string,
     end of ty_style,
     tt_styles type standard table of ty_style with key id.

@@ -13,15 +13,19 @@ class lcl_workbook_parser definition final
         name type string,
         data type string,
       end of ty_mock,
-      tt_mocks type standard table of ty_mock with key name,
+      tt_mocks type standard table of ty_mock with key name.
 
+    types:
       begin of ty_range,
         row_min type i,
         row_max type i,
         col_min type i,
         col_max type i,
-      end of ty_range,
-      tt_uuid type standard table of uuid with default key.
+      end of ty_range.
+
+    types:
+      tt_style_list type standard table of i with default key,
+      ts_style_list type sorted table of i with unique key table_line.
 
     constants contents_sheet_name type string value '_contents'.
     constants exclude_sheet_name type string value '_exclude'.
@@ -56,7 +60,7 @@ class lcl_workbook_parser definition final
       importing
         ii_excel type ref to lif_excel
       returning
-        value(rt_style_uuids) type tt_uuid
+        value(rt_style_list) type tt_style_list
       raising
         lcx_excel.
 
@@ -95,7 +99,7 @@ class lcl_workbook_parser definition final
         i_row type i
         i_colmin type i default 1
         i_colmax type i default 9999
-        it_date_styles type tt_uuid optional
+        it_date_styles type ts_style_list optional
       returning
         value(rt_values) type string_table
       raising
@@ -113,7 +117,7 @@ class lcl_workbook_parser definition final
     class-methods convert_sheet
       importing
         it_content type lif_excel=>tt_sheet_content
-        it_date_styles type tt_uuid optional
+        it_date_styles type ts_style_list optional
       returning
         value(rv_data) type string
       raising
@@ -166,7 +170,7 @@ class lcl_workbook_parser implementation.
       endloop.
     endif.
 
-    data lt_date_styles type tt_uuid.
+    data lt_date_styles type ts_style_list.
     lt_date_styles = find_date_styles( ii_excel ).
 
     " convert sheets
@@ -214,7 +218,7 @@ class lcl_workbook_parser implementation.
 
     loop at lt_styles assigning <s>.
       if <s>-format ca 'd' and <s>-format ca 'm' and <s>-format ca 'y'. " Guess it is date ...
-        append <s>-id to rt_style_uuids.
+        append <s>-id to rt_style_list.
       endif.
     endloop.
 

@@ -33,55 +33,61 @@ class lcl_wb_parser_test_mock implementation.
 
     case iv_sheet_name.
       when '_contents'.
-        _add_cell 1 1 'Content'    'A1'  '0230522560691EEA84F5D3267CA7FD65'  's'.
-        _add_cell 1 2 'SaveToText' 'B1'  '0230522560691EEA84F5D3267CA7FD65'  's'.
-        _add_cell 2 1 'Sheet1'     'A2'  '00000000000000000000000000000000'  's'.
-        _add_cell 2 2 'X'          'B2'  '00000000000000000000000000000000'  's'.
-        _add_cell 3 1 'Sheet2'     'A3'  '00000000000000000000000000000000'  's'.
-        _add_cell 4 1 'Sheet3'     'A4'  '00000000000000000000000000000000'  's'.
-        _add_cell 4 2 'X'          'B4'  '00000000000000000000000000000000'  's'.
-        _add_cell 5 1 'Sheet4'     'A5'  '00000000000000000000000000000000'  's'.
-        _add_cell 5 2 'X'          'B5'  '00000000000000000000000000000000'  's'.
+        _add_cell 1 1 'Content'    'A1'  4  's'.
+        _add_cell 1 2 'SaveToText' 'B1'  4  's'.
+        _add_cell 2 1 'Sheet1'     'A2'  0  's'.
+        _add_cell 2 2 'X'          'B2'  0  's'.
+        _add_cell 3 1 'Sheet2'     'A3'  0  's'.
+        _add_cell 4 1 'Sheet3'     'A4'  0  's'.
+        _add_cell 4 2 'X'          'B4'  0  's'.
+        _add_cell 5 1 'Sheet4'     'A5'  0  's'.
+        _add_cell 5 2 'X'          'B5'  0  's'.
       when '_exclude'.
-        _add_cell 1 1 'to_exclude' 'A1' '0230522560691EEA84F5D3267CA87D65'  's'.
-        _add_cell 2 1 'Sheet3'     'A2' '00000000000000000000000000000000'  's'.
+        _add_cell 1 1 'to_exclude' 'A1' 7  's'.
+        _add_cell 2 1 'Sheet3'     'A2' 0  's'.
       when 'Sheet1'.
-        _add_cell 1 1 'Column1'   'A1' '0230522560691EEA84F5D3267CA7FD65' 's'.
-        _add_cell 1 2 'Column2'   'B1' '0230522560691EEA84F5D3267CA7FD65' 's'.
-        _add_cell 2 1 'A'         'A2' '00000000000000000000000000000000' 's'.
-        _add_cell 2 2 '1'         'B2' '0230522560691EEA84F5D3267CA81D65' ''.
-        _add_cell 3 1 'B'         'A3' '00000000000000000000000000000000' 's'.
-        _add_cell 3 2 '2'         'B3' '00000000000000000000000000000000' ''.
-        _add_cell 4 1 'C'         'A4' '00000000000000000000000000000000' 's'.
-        _add_cell 4 2 '3'         'B4' '00000000000000000000000000000000' ''.
-        _add_cell 6 1 'More_data' 'A6' '00000000000000000000000000000000' 's'.
-        _add_cell 6 2 'to_skip'   'B6' '00000000000000000000000000000000' 's'.
+        _add_cell 1 1 'Column1'   'A1' 4 's'.
+        _add_cell 1 2 'Column2'   'B1' 4 's'.
+        _add_cell 2 1 'A'         'A2' 0 's'.
+        _add_cell 2 2 '1'         'B2' 5 ''.
+        _add_cell 3 1 'B'         'A3' 0 's'.
+        _add_cell 3 2 '2'         'B3' 0 ''.
+        _add_cell 4 1 'C'         'A4' 0 's'.
+        _add_cell 4 2 '3'         'B4' 0 ''.
+        _add_cell 6 1 'More_data' 'A6' 0 's'.
+        _add_cell 6 2 'to_skip'   'B6' 0 's'.
       when others. " Sheet 2,3,4
-        _add_cell 1 1 'A'     'A1' '0230522560691EEA84F5D3267CA7FD65' 's'.
-        _add_cell 1 2 'B'     'B1' '0230522560691EEA84F5D3267CA7FD65' 's'.
-        _add_cell 1 3 'C'     'C1' '0230522560691EEA84F5D3267CA7FD65' 's'.
-        _add_cell 1 4 'D'     'D1' '0230522560691EEA84F5D3267CA7FD65' 's'.
-        _add_cell 2 1 'Vasya' 'A2' '00000000000000000000000000000000' 's'.
-        _add_cell 2 2 '43344' 'B2' '0230522560691EEA84F5D3267CA85D65' ''.
-        _add_cell 2 3 '15'    'C2' '00000000000000000000000000000000' ''.
-        _add_cell 2 4 '1'     'D2' '00000000000000000000000000000000' 'b'.
-        _add_cell 3 1 'Petya' 'A3' '00000000000000000000000000000000' 's'.
-        _add_cell 3 2 '43345' 'B3' '0230522560691EEA84F5D3267CA85D65' ''.
-        _add_cell 3 3 '16.37' 'C3' '0230522560691EEA84F5D3267CA83D65' ''.
-        _add_cell 3 4 '0'     'D3' '00000000000000000000000000000000' 'b'.
+        _add_cell 1 1 'A'     'A1' 4 's'.
+        _add_cell 1 2 'B'     'B1' 4 's'.
+        _add_cell 1 3 'C'     'C1' 4 's'.
+        _add_cell 1 4 'D'     'D1' 4 's'.
+        _add_cell 2 1 'Vasya' 'A2' 0 's'.
+        _add_cell 2 2 '43344' 'B2' 6 ''.
+        _add_cell 2 3 '15'    'C2' 0 ''.
+        _add_cell 2 4 '1'     'D2' 0 'b'.
+        _add_cell 3 1 'Petya' 'A3' 0 's'.
+        _add_cell 3 2 '43345' 'B3' 6 ''.
+        _add_cell 3 3 '16.37' 'C3' 0 ''.
+        _add_cell 3 4 '0'     'D3' 0 'b'.
     endcase.
   endmethod.
 
   method lif_excel~get_styles.
     data style like line of rt_styles.
 
-    style-id     = '0230522560691EEA84F5E90841861D72'.
-    style-format = 'mm-dd-yy'.
-    append style to rt_styles.
+    define _add_style.
+      style-id     = &1.
+      style-format = &2.
+      append style to rt_styles.
+    end-of-definition.
 
-    style-id     = '0230522560691EEA84F5E90841863D72'.
-    style-format = ''.
-    append style to rt_styles.
+    _add_style 1 ''.
+    _add_style 2 ''.
+    _add_style 3 ''.
+    _add_style 4 ''.
+    _add_style 5 ''.
+    _add_style 6 'mm-dd-yy'.
+    _add_style 7 ''.
   endmethod.
 
 endclass.
@@ -353,7 +359,7 @@ class ltcl_workbook_parser_test implementation.
 
     append initial line to lt_exp assigning <exp>.
     <exp>-name = 'Sheet4'.
-    <exp>-data = 'A\tB\tC\tD\nVasya\t43344\t15\t1\nPetya\t43345\t16.37\t0'.
+    <exp>-data = 'A\tB\tC\tD\nVasya\t01.09.2018\t15\t1\nPetya\t02.09.2018\t16.37\t0'.
     <exp>-data = replace( val = <exp>-data sub = '\n' with = cl_abap_char_utilities=>newline occ = 0 ).
     <exp>-data = replace( val = <exp>-data sub = '\t' with = cl_abap_char_utilities=>horizontal_tab occ = 0 ).
 
