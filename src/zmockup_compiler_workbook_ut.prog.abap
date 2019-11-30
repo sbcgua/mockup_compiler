@@ -2,6 +2,92 @@
 * UNIT TESTS
 **********************************************************************
 
+class lcl_wb_parser_test_mock definition final.
+  public section.
+    interfaces lif_excel.
+endclass.
+
+class lcl_wb_parser_test_mock implementation.
+
+  method lif_excel~get_sheet_names.
+    append '_contents' to rt_sheet_names.
+    append '_exclude' to rt_sheet_names.
+    append 'Sheet1' to rt_sheet_names.
+    append 'Sheet2' to rt_sheet_names.
+    append 'Sheet3' to rt_sheet_names.
+    append 'Sheet4' to rt_sheet_names.
+  endmethod.
+
+  method lif_excel~get_sheet_content.
+    field-symbols <i> like line of rt_content.
+
+    define _add_cell.
+      append initial line to rt_content assigning <i>.
+      <i>-cell_row     = &1.
+      <i>-cell_column  = &2.
+      <i>-cell_value   = &3.
+      <i>-cell_coords  = &4.
+      <i>-cell_style   = &5.
+      <i>-data_type    = &6.
+    end-of-definition.
+
+    case iv_sheet_name.
+      when '_contents'.
+        _add_cell 1 1 'Content'    'A1'  '0230522560691EEA84F5D3267CA7FD65'  's'.
+        _add_cell 1 2 'SaveToText' 'B1'  '0230522560691EEA84F5D3267CA7FD65'  's'.
+        _add_cell 2 1 'Sheet1'     'A2'  '00000000000000000000000000000000'  's'.
+        _add_cell 2 2 'X'          'B2'  '00000000000000000000000000000000'  's'.
+        _add_cell 3 1 'Sheet2'     'A3'  '00000000000000000000000000000000'  's'.
+        _add_cell 4 1 'Sheet3'     'A4'  '00000000000000000000000000000000'  's'.
+        _add_cell 4 2 'X'          'B4'  '00000000000000000000000000000000'  's'.
+        _add_cell 5 1 'Sheet4'     'A5'  '00000000000000000000000000000000'  's'.
+        _add_cell 5 2 'X'          'B5'  '00000000000000000000000000000000'  's'.
+      when '_exclude'.
+        _add_cell 1 1 'to_exclude' 'A1' '0230522560691EEA84F5D3267CA87D65'  's'.
+        _add_cell 2 1 'Sheet3'     'A2' '00000000000000000000000000000000'  's'.
+      when 'Sheet1'.
+        _add_cell 1 1 'Column1'   'A1' '0230522560691EEA84F5D3267CA7FD65' 's'.
+        _add_cell 1 2 'Column2'   'B1' '0230522560691EEA84F5D3267CA7FD65' 's'.
+        _add_cell 2 1 'A'         'A2' '00000000000000000000000000000000' 's'.
+        _add_cell 2 2 '1'         'B2' '0230522560691EEA84F5D3267CA81D65' ''.
+        _add_cell 3 1 'B'         'A3' '00000000000000000000000000000000' 's'.
+        _add_cell 3 2 '2'         'B3' '00000000000000000000000000000000' ''.
+        _add_cell 4 1 'C'         'A4' '00000000000000000000000000000000' 's'.
+        _add_cell 4 2 '3'         'B4' '00000000000000000000000000000000' ''.
+        _add_cell 6 1 'More_data' 'A6' '00000000000000000000000000000000' 's'.
+        _add_cell 6 2 'to_skip'   'B6' '00000000000000000000000000000000' 's'.
+      when others. " Sheet 2,3,4
+        _add_cell 1 1 'A'     'A1' '0230522560691EEA84F5D3267CA7FD65' 's'.
+        _add_cell 1 2 'B'     'B1' '0230522560691EEA84F5D3267CA7FD65' 's'.
+        _add_cell 1 3 'C'     'C1' '0230522560691EEA84F5D3267CA7FD65' 's'.
+        _add_cell 1 4 'D'     'D1' '0230522560691EEA84F5D3267CA7FD65' 's'.
+        _add_cell 2 1 'Vasya' 'A2' '00000000000000000000000000000000' 's'.
+        _add_cell 2 2 '43344' 'B2' '0230522560691EEA84F5D3267CA85D65' ''.
+        _add_cell 2 3 '15'    'C2' '00000000000000000000000000000000' ''.
+        _add_cell 2 4 '1'     'D2' '00000000000000000000000000000000' 'b'.
+        _add_cell 3 1 'Petya' 'A3' '00000000000000000000000000000000' 's'.
+        _add_cell 3 2 '43345' 'B3' '0230522560691EEA84F5D3267CA85D65' ''.
+        _add_cell 3 3 '16.37' 'C3' '0230522560691EEA84F5D3267CA83D65' ''.
+        _add_cell 3 4 '0'     'D3' '00000000000000000000000000000000' 'b'.
+    endcase.
+  endmethod.
+
+  method lif_excel~get_styles.
+    data style like line of rt_styles.
+
+    style-id     = '0230522560691EEA84F5E90841861D72'.
+    style-format = 'mm-dd-yy'.
+    append style to rt_styles.
+
+    style-id     = '0230522560691EEA84F5E90841863D72'.
+    style-format = ''.
+    append style to rt_styles.
+  endmethod.
+
+endclass.
+
+**********************************************************************
+
 class ltcl_workbook_parser_test definition final for testing
   duration short
   risk level harmless.
@@ -19,7 +105,7 @@ class ltcl_workbook_parser_test definition final for testing
     methods read_contents for testing.
     methods convert_sheet for testing.
     methods read_exclude for testing.
-    " TODO integration test
+    methods integration_test for testing raising lcx_error.
 
 endclass.
 
@@ -247,5 +333,32 @@ class ltcl_workbook_parser_test implementation.
     cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
 
   endmethod.  " read_exclude.
+
+  method integration_test.
+
+    data lo_excel_mock type ref to lcl_wb_parser_test_mock.
+    create object lo_excel_mock.
+
+    data lt_act type lcl_workbook_parser=>tt_mocks.
+    lt_act = lcl_workbook_parser=>parse( lo_excel_mock ).
+
+    data lt_exp type lcl_workbook_parser=>tt_mocks.
+    field-symbols <exp> like line of lt_exp.
+
+    append initial line to lt_exp assigning <exp>.
+    <exp>-name = 'Sheet1'.
+    <exp>-data = 'Column1\tColumn2\nA\t1\nB\t2\nC\t3'.
+    <exp>-data = replace( val = <exp>-data sub = '\n' with = cl_abap_char_utilities=>newline occ = 0 ).
+    <exp>-data = replace( val = <exp>-data sub = '\t' with = cl_abap_char_utilities=>horizontal_tab occ = 0 ).
+
+    append initial line to lt_exp assigning <exp>.
+    <exp>-name = 'Sheet4'.
+    <exp>-data = 'A\tB\tC\tD\nVasya\t43344\t15\t1\nPetya\t43345\t16.37\t0'.
+    <exp>-data = replace( val = <exp>-data sub = '\n' with = cl_abap_char_utilities=>newline occ = 0 ).
+    <exp>-data = replace( val = <exp>-data sub = '\t' with = cl_abap_char_utilities=>horizontal_tab occ = 0 ).
+
+    cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
+
+  endmethod.
 
 endclass.

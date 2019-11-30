@@ -90,13 +90,14 @@ class lcl_workbook_parser definition final
 
     class-methods parse
       importing
-        iv_data type xstring
+        ii_excel type ref to lif_excel
       returning
         value(rt_mocks) type tt_mocks
       raising
         lcx_error.
 
   private section.
+
     class-methods read_contents
       importing
         it_content type lif_excel=>tt_sheet_content
@@ -187,13 +188,10 @@ class lcl_workbook_parser implementation.
 
   method parse.
 
-    data li_excel type ref to lif_excel.
-    li_excel = lcl_excel_abap2xlsx=>load( iv_data ).
-
     " Get list of work sheets
     data lt_worksheets type string_table.
     data lt_sheets_to_save type string_table.
-    lt_worksheets = li_excel->get_sheet_names( ).
+    lt_worksheets = ii_excel->get_sheet_names( ).
 
     " Check and read content
     field-symbols <ws> like line of lt_worksheets.
@@ -201,7 +199,7 @@ class lcl_workbook_parser implementation.
     if sy-subrc is not initial.
       lt_sheets_to_save = lt_worksheets. " Just parse all
     else.
-      lt_sheets_to_save = read_contents( li_excel->get_sheet_content( contents_sheet_name ) ).
+      lt_sheets_to_save = read_contents( ii_excel->get_sheet_content( contents_sheet_name ) ).
 
       " Check all sheets exist
       field-symbols <sheet_name> like line of lt_sheets_to_save.
@@ -217,7 +215,7 @@ class lcl_workbook_parser implementation.
     data lt_excludes type sorted table of string with non-unique key table_line.
     read table lt_worksheets assigning <ws> with key table_line = exclude_sheet_name.
     if sy-subrc = 0.
-      lt_excludes = read_exclude( li_excel->get_sheet_content( exclude_sheet_name ) ).
+      lt_excludes = read_exclude( ii_excel->get_sheet_content( exclude_sheet_name ) ).
 
       " exclude sheets
       data lv_index type sy-tabix.
@@ -231,7 +229,7 @@ class lcl_workbook_parser implementation.
     endif.
 
     data lt_date_styles type tt_uuid.
-    lt_date_styles = find_date_styles( li_excel ).
+    lt_date_styles = find_date_styles( ii_excel ).
 
     " convert sheets
     field-symbols <mock> like line of rt_mocks.
@@ -240,7 +238,7 @@ class lcl_workbook_parser implementation.
       append initial line to rt_mocks assigning <mock>.
       <mock>-name = <sheet_name>.
       <mock>-data = convert_sheet(
-        it_content     = li_excel->get_sheet_content( <sheet_name> )
+        it_content     = ii_excel->get_sheet_content( <sheet_name> )
         it_date_styles = lt_date_styles ).
     endloop.
 
