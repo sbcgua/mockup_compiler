@@ -5,7 +5,7 @@ class lcl_excel_abap2xlsx definition final.
     types:
       begin of ty_ws_item,
         title     type string,
-        worksheet type ref to zcl_excel_worksheet,
+        worksheet type ref to object,
       end of ty_ws_item,
       tt_worksheets type standard table of ty_ws_item with key title.
 
@@ -25,7 +25,7 @@ class lcl_excel_abap2xlsx definition final.
       raising
         lcx_excel.
   private section.
-    data mo_excel type ref to zcl_excel.
+    data mo_excel type ref to object.
     data mt_worksheets type tt_worksheets.
     data mt_style_map type th_style_map.
     methods build_style_map.
@@ -35,15 +35,19 @@ class lcl_excel_abap2xlsx implementation.
 
   method load.
 
-    data lx_xls type ref to zcx_excel.
-    data lo_reader type ref to zif_excel_reader.
+    data lx_xls type ref to cx_static_check.
+    data lo_reader type ref to object.
 
     create object ro_excel.
 
     try.
-      create object lo_reader type zcl_excel_reader_2007.
-      ro_excel->mo_excel = lo_reader->load( iv_xdata ).
-    catch zcx_excel into lx_xls.
+      create object lo_reader type ('ZCL_EXCEL_READER_2007').
+      call method lo_reader->('ZIF_EXCEL_READER~LOAD')
+        exporting
+          i_excel2007 = iv_xdata
+        receiving
+          r_excel = ro_excel->mo_excel.
+    catch cx_static_check into lx_xls.
       lcx_excel=>excel_error( 'zcl_excel error: ' && lx_xls->get_text( ) ). "#EC NOTEXT
     endtry.
 
@@ -55,11 +59,11 @@ class lcl_excel_abap2xlsx implementation.
     field-symbols <w> like line of mt_worksheets.
 
     if mt_worksheets is initial.
-      lo_iter = mo_excel->get_worksheets_iterator( ).
+      call method mo_excel->('GET_WORKSHEETS_ITERATOR') receiving eo_iterator = lo_iter.
       while lo_iter->has_next( ) is not initial.
         append initial line to mt_worksheets assigning <w>.
         <w>-worksheet ?= lo_iter->get_next( ).
-        <w>-title      = <w>-worksheet->get_title( ).
+        call method <w>-worksheet->('GET_TITLE') receiving ep_title = <w>-title.
       endwhile.
     endif.
 
@@ -82,18 +86,36 @@ class lcl_excel_abap2xlsx implementation.
       build_style_map( ).
     endif.
 
-    field-symbols <src> like line of <w>-worksheet->sheet_content.
+    field-symbols <srctab> type any table.
+    field-symbols <src> type any.
+    field-symbols <val> type any.
     field-symbols <dst> like line of rt_content.
     field-symbols <style> like line of mt_style_map.
 
-    loop at <w>-worksheet->sheet_content assigning <src>.
+    assign <w>-worksheet->('SHEET_CONTENT') to <srctab>.
+    assert sy-subrc = 0.
+
+    loop at <srctab> assigning <src>.
       append initial line to rt_content assigning <dst>.
-      <dst>-cell_row    = <src>-cell_row.
-      <dst>-cell_column = <src>-cell_column.
-      <dst>-cell_value  = <src>-cell_value.
-      <dst>-cell_coords = <src>-cell_coords.
-      <dst>-data_type   = <src>-data_type.
-      read table mt_style_map assigning <style> with key uuid = <src>-cell_style.
+      assign component 'CELL_ROW' of structure <src> to <val>.
+      assert sy-subrc = 0.
+      <dst>-cell_row    = <val>.
+      assign component 'CELL_COLUMN' of structure <src> to <val>.
+      assert sy-subrc = 0.
+      <dst>-cell_column = <val>.
+      assign component 'CELL_VALUE' of structure <src> to <val>.
+      assert sy-subrc = 0.
+      <dst>-cell_value  = <val>.
+      assign component 'CELL_COORDS' of structure <src> to <val>.
+      assert sy-subrc = 0.
+      <dst>-cell_coords = <val>.
+      assign component 'DATA_TYPE' of structure <src> to <val>.
+      assert sy-subrc = 0.
+      <dst>-data_type   = <val>.
+
+      assign component 'CELL_STYLE' of structure <src> to <val>.
+      assert sy-subrc = 0.
+      read table mt_style_map assigning <style> with key uuid = <val>.
       if sy-subrc = 0.
         <dst>-cell_style = <style>-index.
       endif.
@@ -122,17 +144,26 @@ class lcl_excel_abap2xlsx implementation.
 
   method build_style_map.
 
-    data:
-      lo_style type ref to zcl_excel_style,
-      lo_iter  type ref to cl_object_collection_iterator.
+    data lo_style type ref to object.
+    data lo_number_format type ref to object.
+    data lo_iter  type ref to cl_object_collection_iterator.
     data style_map like line of mt_style_map.
+    field-symbols <ref> type any.
+    field-symbols <number_format> type ref to object.
 
-    lo_iter = mo_excel->get_styles_iterator( ).
+    call method mo_excel->('GET_STYLES_ITERATOR') receiving eo_iterator = lo_iter.
     while lo_iter->has_next( ) is not initial.
       style_map-index = sy-index.
       lo_style ?= lo_iter->get_next( ).
-      style_map-uuid   = lo_style->get_guid( ).
-      style_map-format = lo_style->number_format->format_code.
+
+      call method lo_style->('GET_GUID') receiving ep_guid = style_map-uuid.
+      assign lo_style->('NUMBER_FORMAT') to <ref>.
+      assert sy-subrc = 0.
+      lo_number_format = <ref>.
+      assign lo_number_format->('FORMAT_CODE') to <ref>.
+      assert sy-subrc = 0.
+      style_map-format = <ref>.
+
       insert style_map into table mt_style_map.
     endwhile.
   endmethod.
