@@ -37,6 +37,7 @@ class ZCL_XLSXREADER_XML_UTILS definition
     class-methods attributes_to_struc
       importing
         io_node type ref to if_ixml_node
+        iv_no_clear type abap_bool default abap_false
       exporting
         es_struc type any.
 
@@ -72,7 +73,9 @@ CLASS ZCL_XLSXREADER_XML_UTILS IMPLEMENTATION.
     data lv_attr_name type string.
     field-symbols <fld> type any.
 
-    clear es_struc.
+    if iv_no_clear = abap_false.
+      clear es_struc.
+    endif.
 
     lo_attrs    = io_node->get_attributes( ).
     lo_iterator = lo_attrs->create_iterator( ).
@@ -184,20 +187,17 @@ class ZCL_XLSXREADER definition
 
 public section.
 
-  constants c_openxml_namespace_uri type string value 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'.
-
-  interfaces zif_xlsxreader_node_processor.
+  interfaces ZIF_XLSXREADER_NODE_PROCESSOR .
 
   types:
     begin of ty_num_format,
       numfmtid   type i,
       formatcode type string,
-    end of ty_num_format.
+    end of ty_num_format .
   types:
-    tt_num_formats type table of ty_num_format with key numfmtid.
+    tt_num_formats type table of ty_num_format with key numfmtid .
   types:
-    ts_num_formats type sorted table of ty_num_format with unique key numfmtid.
-
+    ts_num_formats type sorted table of ty_num_format with unique key numfmtid .
   types:
     begin of ty_sheet,
       name    type string,
@@ -206,14 +206,12 @@ public section.
     end of ty_sheet .
   types:
     tt_sheets type table of ty_sheet with key name .
-
   types:
     begin of ty_cell_style,
       numfmtid   type i,
     end of ty_cell_style .
   types:
     tt_cell_styles type table of ty_cell_style with default key .
-
   types:
     begin of ty_raw_cell,
       r     type string,
@@ -221,73 +219,67 @@ public section.
       t     type string,
       row   type string,
       value type string,
-    end of ty_raw_cell,
-    tt_raw_cells type standard table of ty_raw_cell with key r.
-
+    end of ty_raw_cell .
+  types:
+    tt_raw_cells type standard table of ty_raw_cell with key r .
   types:
     begin of ty_parsing_context,
       stage type string,
       data  type ref to data,
-    end of ty_parsing_context.
-
+    end of ty_parsing_context .
   types:
     begin of ty_cell,
-      col   type c length 3,
+      col   type i,
       row   type i,
       type  type c length 1,
       style type i,
       value type string,
+      ref   type string,
     end of ty_cell .
-
   types:
     begin of ty_style,
       num_format type string,
-    end of ty_style.
-
+    end of ty_style .
   types:
-    tt_styles type standard table of ty_style with default key.
-
+    tt_styles type standard table of ty_style with default key .
   types:
     tt_cells type standard table of ty_cell with key col row .
 
-  class-methods load
+  constants C_OPENXML_NAMESPACE_URI type STRING value 'http://schemas.openxmlformats.org/spreadsheetml/2006/main' ##NO_TEXT.
+
+  class-methods LOAD
     importing
-      !iv_xdata type xstring
+      !IV_XDATA type XSTRING
     returning
-      value(ro_instance) type ref to zcl_xlsxreader
+      value(RO_INSTANCE) type ref to ZCL_XLSXREADER
     raising
-      cx_openxml_format
-      cx_openxml_not_found.
-
-  methods get_sheet
+      CX_OPENXML_FORMAT
+      CX_OPENXML_NOT_FOUND .
+  methods GET_SHEET
     importing
-      !iv_name type string
+      !IV_NAME type STRING
     returning
-      value(rt_cells) type tt_cells
+      value(RT_CELLS) type TT_CELLS
     raising
-      cx_openxml_not_found
-      cx_openxml_format .
-
-  methods constructor
+      CX_OPENXML_NOT_FOUND
+      CX_OPENXML_FORMAT .
+  methods CONSTRUCTOR
     importing
-      iv_xdata type xstring
+      !IV_XDATA type XSTRING
     raising
-      cx_openxml_format
-      cx_openxml_not_found.
-
-  methods get_sheet_names
+      CX_OPENXML_FORMAT
+      CX_OPENXML_NOT_FOUND .
+  methods GET_SHEET_NAMES
     returning
-      value(rt_sheet_names) type string_table
+      value(RT_SHEET_NAMES) type STRING_TABLE
     raising
-      cx_openxml_format .
-
-  methods get_styles
+      CX_OPENXML_FORMAT .
+  methods GET_STYLES
     returning
-      value(rt_styles) type tt_styles
+      value(RT_STYLES) type TT_STYLES
     raising
-      cx_openxml_format
-      cx_openxml_not_found.
-
+      CX_OPENXML_FORMAT
+      CX_OPENXML_NOT_FOUND .
 protected section.
 private section.
 
@@ -336,6 +328,12 @@ private section.
       it_raw_cells type tt_raw_cells
     returning
       value(rt_cells) type tt_cells.
+
+  class-methods column_to_index
+    importing
+      iv_col type string
+    returning
+      value(rv_index) type i.
 
 ENDCLASS.
 
@@ -423,6 +421,27 @@ CLASS ZCL_XLSXREADER IMPLEMENTATION.
   endmethod.
 
 
+  method column_to_index.
+
+    data lv_len type i.
+    data lv_code type i.
+    data lv_char type c length 1.
+    field-symbols <bin> type x.
+
+    lv_len = strlen( iv_col ).
+    assert lv_len <= 3. " >3 unxepected ...
+    do lv_len times.
+      rv_index = rv_index * 26. " A..Z = 26
+      sy-index = sy-index - 1.
+      lv_char = iv_col+sy-index(1).
+      assign lv_char to <bin> casting.
+      lv_code = <bin>+0(1).
+      rv_index = rv_index + lv_code - 65 + 1. " A = 4100 in unicode / 16640
+    enddo.
+
+  endmethod.
+
+
   method constructor.
     mo_xlsx = cl_xlsx_document=>load_document( iv_xdata ).
     mo_workbook = mo_xlsx->get_workbookpart( ).
@@ -455,9 +474,17 @@ CLASS ZCL_XLSXREADER IMPLEMENTATION.
       replace lv_row in lv_col with space.
 
       <res>-row   = lv_row.
-      <res>-col   = lv_col.
+      <res>-col   = column_to_index( lv_col ).
       <res>-type  = <c>-t.
-      <res>-style = <c>-s.
+      <res>-ref   = <c>-r.
+
+      " Styles are not clear, need to read the spec ...
+      " +1 because the are indexed from 0
+      " +2 because there are 2 default excel styles, however cell style seems to refer real style list from style.xml
+      " style = -1 if undefined (filled in parse)
+      if <c>-s >= 0.
+        <res>-style = <c>-s + 1 + 2.
+      endif.
 
       if <c>-t eq 's'.
         <res>-value = get_shared_string( <c>-value + 1 ).
@@ -661,9 +688,11 @@ CLASS ZCL_XLSXREADER IMPLEMENTATION.
       when 'cell'.
         assign <context>-data->* to <cells>.
         append initial line to <cells> assigning <c>.
+        <c>-s = -1. " undefined style
         zcl_xlsxreader_xml_utils=>attributes_to_struc(
           exporting
             io_node     = io_node
+            iv_no_clear = abap_true
           importing
             es_struc = <c> ).
         <c>-value = io_node->get_value( ).

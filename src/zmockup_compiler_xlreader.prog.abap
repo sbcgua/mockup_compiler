@@ -72,7 +72,7 @@ class lcl_excel_xlreader implementation.
       <dst>-cell_row    = <src>-row.
       <dst>-cell_column = <src>-col.
       <dst>-cell_value  = <src>-value.
-*      <dst>-cell_coords = <val>.
+      <dst>-cell_coords = <src>-ref.
       <dst>-data_type   = <src>-type.
       <dst>-cell_style  = <src>-style.
     endloop.
