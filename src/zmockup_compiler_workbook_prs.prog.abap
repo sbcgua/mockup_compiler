@@ -3,6 +3,7 @@
 **********************************************************************
 include zmockup_compiler_excel_defs.
 include zmockup_compiler_abap2xlsx.
+include zmockup_compiler_xlreader.
 
 class ltcl_workbook_parser_test definition deferred.
 class lcl_workbook_parser definition final

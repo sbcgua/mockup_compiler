@@ -39,7 +39,9 @@ interface lif_excel.
 
   methods get_sheet_names
     returning
-      value(rt_sheet_names) type string_table.
+      value(rt_sheet_names) type string_table
+    raising
+      lcx_excel.
 
   methods get_sheet_content
     importing

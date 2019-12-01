@@ -1,4 +1,4 @@
-class lcl_excel_abap2xlsx definition final.
+class lcl_excel_xlreader definition final.
   public section.
     interfaces lif_excel.
 
@@ -21,151 +21,83 @@ class lcl_excel_abap2xlsx definition final.
       importing
         iv_xdata type xstring
       returning
-        value(ro_excel) type ref to lcl_excel_abap2xlsx
+        value(ro_excel) type ref to lcl_excel_xlreader
       raising
         lcx_excel.
   private section.
-    data mo_excel type ref to object.
-    data mt_worksheets type tt_worksheets.
-    data mt_style_map type th_style_map.
-    methods build_style_map.
+    data mo_excel type ref to zcl_xlsxreader.
 endclass.
 
-class lcl_excel_abap2xlsx implementation.
+class lcl_excel_xlreader implementation.
 
   method load.
 
-    data lx_xls type ref to cx_static_check.
+    data lx type ref to cx_static_check.
     data lo_reader type ref to object.
 
     create object ro_excel.
 
     try.
-      create object lo_reader type ('ZCL_EXCEL_READER_2007').
-      call method lo_reader->('ZIF_EXCEL_READER~LOAD')
-        exporting
-          i_excel2007 = iv_xdata
-        receiving
-          r_excel = ro_excel->mo_excel.
-    catch cx_static_check into lx_xls.
-      lcx_excel=>excel_error( 'zcl_excel error: ' && lx_xls->get_text( ) ). "#EC NOTEXT
+      ro_excel->mo_excel = zcl_xlsxreader=>load( iv_xdata ).
+    catch cx_openxml_format cx_openxml_not_found into lx.
+      lcx_excel=>excel_error( 'zcl_xlsxreader->load error: ' && lx->get_text( ) ). "#EC NOTEXT
     endtry.
 
   endmethod.
 
   method lif_excel~get_sheet_names.
-
-    data lo_iter type ref to cl_object_collection_iterator.
-    field-symbols <w> like line of mt_worksheets.
-
-    if mt_worksheets is initial.
-      call method mo_excel->('GET_WORKSHEETS_ITERATOR') receiving eo_iterator = lo_iter.
-      while lo_iter->has_next( ) is not initial.
-        append initial line to mt_worksheets assigning <w>.
-        <w>-worksheet ?= lo_iter->get_next( ).
-        call method <w>-worksheet->('GET_TITLE') receiving ep_title = <w>-title.
-      endwhile.
-    endif.
-
-    loop at mt_worksheets assigning <w>.
-      append <w>-title to rt_sheet_names.
-    endloop.
-
+    data lx type ref to cx_static_check.
+    try.
+      rt_sheet_names = mo_excel->get_sheet_names( ).
+    catch cx_openxml_format cx_openxml_not_found into lx.
+      lcx_excel=>excel_error( 'zcl_xlsxreader->get_sheet_names error: ' && lx->get_text( ) ). "#EC NOTEXT
+    endtry.
   endmethod.
 
   method lif_excel~get_sheet_content.
 
-    field-symbols <w> like line of mt_worksheets.
+    data lt_cells type zcl_xlsxreader=>tt_cells.
+    data lx type ref to cx_static_check.
+    try.
+      lt_cells = mo_excel->get_sheet( iv_sheet_name ).
+    catch cx_openxml_format cx_openxml_not_found into lx.
+      lcx_excel=>excel_error( 'zcl_xlsxreader->get_sheet error: ' && lx->get_text( ) ). "#EC NOTEXT
+    endtry.
 
-    read table mt_worksheets assigning <w> with key title = iv_sheet_name.
-    if sy-subrc <> 0.
-      lcx_excel=>excel_error( msg = |Workbook does not contain [{ iv_sheet_name }] sheet| ). "#EC NOTEXT
-    endif.
-
-    if mt_style_map is initial.
-      build_style_map( ).
-    endif.
-
-    field-symbols <srctab> type any table.
-    field-symbols <src> type any.
-    field-symbols <val> type any.
+    field-symbols <src> like line of lt_cells.
     field-symbols <dst> like line of rt_content.
-    field-symbols <style> like line of mt_style_map.
 
-    assign <w>-worksheet->('SHEET_CONTENT') to <srctab>.
-    assert sy-subrc = 0.
-
-    loop at <srctab> assigning <src>.
+    loop at lt_cells assigning <src>.
       append initial line to rt_content assigning <dst>.
-      assign component 'CELL_ROW' of structure <src> to <val>.
-      assert sy-subrc = 0.
-      <dst>-cell_row    = <val>.
-      assign component 'CELL_COLUMN' of structure <src> to <val>.
-      assert sy-subrc = 0.
-      <dst>-cell_column = <val>.
-      assign component 'CELL_VALUE' of structure <src> to <val>.
-      assert sy-subrc = 0.
-      <dst>-cell_value  = <val>.
-      assign component 'CELL_COORDS' of structure <src> to <val>.
-      assert sy-subrc = 0.
-      <dst>-cell_coords = <val>.
-      assign component 'DATA_TYPE' of structure <src> to <val>.
-      assert sy-subrc = 0.
-      <dst>-data_type   = <val>.
-
-      assign component 'CELL_STYLE' of structure <src> to <val>.
-      assert sy-subrc = 0.
-      read table mt_style_map assigning <style> with key uuid = <val>.
-      if sy-subrc = 0.
-        <dst>-cell_style = <style>-index.
-      endif.
+      <dst>-cell_row    = <src>-row.
+      <dst>-cell_column = <src>-col.
+      <dst>-cell_value  = <src>-value.
+*      <dst>-cell_coords = <val>.
+      <dst>-data_type   = <src>-type.
+      <dst>-cell_style  = <src>-style.
     endloop.
 
   endmethod.
 
   method lif_excel~get_styles.
 
-    if mt_style_map is initial.
-      build_style_map( ).
-    endif.
+    data lt_styles type zcl_xlsxreader=>tt_styles.
+    data lx type ref to cx_static_check.
+    try.
+      lt_styles = mo_excel->get_styles( ).
+    catch cx_openxml_format cx_openxml_not_found into lx.
+      lcx_excel=>excel_error( 'zcl_xlsxreader->get_styles error: ' && lx->get_text( ) ). "#EC NOTEXT
+    endtry.
 
-    field-symbols <src> like line of mt_style_map.
+    field-symbols <src> like line of lt_styles.
     field-symbols <dst> like line of rt_styles.
 
-    loop at mt_style_map assigning <src>.
+    loop at lt_styles assigning <src>.
       append initial line to rt_styles assigning <dst>.
-      <dst>-id     = <src>-index.
-      <dst>-format = <src>-format.
+      <dst>-id     = sy-tabix.
+      <dst>-format = <src>-num_format.
     endloop.
 
-    sort rt_styles by id.
-
-  endmethod.
-
-  method build_style_map.
-
-    data lo_style type ref to object.
-    data lo_number_format type ref to object.
-    data lo_iter  type ref to cl_object_collection_iterator.
-    data style_map like line of mt_style_map.
-    field-symbols <ref> type any.
-    field-symbols <number_format> type ref to object.
-
-    call method mo_excel->('GET_STYLES_ITERATOR') receiving eo_iterator = lo_iter.
-    while lo_iter->has_next( ) is not initial.
-      style_map-index = sy-index.
-      lo_style ?= lo_iter->get_next( ).
-
-      call method lo_style->('GET_GUID') receiving ep_guid = style_map-uuid.
-      assign lo_style->('NUMBER_FORMAT') to <ref>.
-      assert sy-subrc = 0.
-      lo_number_format = <ref>.
-      assign lo_number_format->('FORMAT_CODE') to <ref>.
-      assert sy-subrc = 0.
-      style_map-format = <ref>.
-
-      insert style_map into table mt_style_map.
-    endwhile.
   endmethod.
 
 endclass.
@@ -174,7 +106,7 @@ endclass.
 * UNIT TEST
 **********************************************************************
 
-class ltcl_excel_abap2xlsx definition final
+class ltcl_excel_xlreader definition final
   for testing
   risk level harmless
   duration short.
@@ -195,7 +127,7 @@ class ltcl_excel_abap2xlsx definition final
     methods get_expected_content returning value(rs_content_samples) type ty_content_sample.
 endclass.
 
-class ltcl_excel_abap2xlsx implementation.
+class ltcl_excel_xlreader implementation.
 
   method load.
 
@@ -203,7 +135,7 @@ class ltcl_excel_abap2xlsx implementation.
     xstr = zcl_w3mime_storage=>read_object_x( 'ZMOCKUP_COMPILER_UNIT_TEST' ).
 
     data li_excel type ref to lif_excel.
-    li_excel = lcl_excel_abap2xlsx=>load( xstr ).
+    li_excel = lcl_excel_xlreader=>load( xstr ).
 
     assert_sheet_names( li_excel ).
     assert_styles( li_excel ).
@@ -241,7 +173,7 @@ class ltcl_excel_abap2xlsx implementation.
       exp = 7 ).
     cl_abap_unit_assert=>assert_equals(
       act = style-format
-      exp = 'mm-dd-yy' ).
+      exp = 'm/d/yy' ). " mm-dd-yy ?
 
   endmethod.
 
