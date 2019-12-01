@@ -295,7 +295,7 @@ class ltcl_workbook_parser_test implementation.
 
     try .
       lt_act = lcl_workbook_parser=>read_contents( mt_dummy_contents ).
-    catch lcx_error zcx_excel.
+    catch lcx_error.
       cl_abap_unit_assert=>fail( 'Unexpected error' ).
     endtry.
 
@@ -313,7 +313,7 @@ class ltcl_workbook_parser_test implementation.
 
     try.
       lv_act = lcl_workbook_parser=>convert_sheet( mt_dummy_sheet ).
-    catch lcx_error zcx_excel.
+    catch lcx_error.
       cl_abap_unit_assert=>fail( 'Unexpected error' ).
     endtry.
 
@@ -329,7 +329,7 @@ class ltcl_workbook_parser_test implementation.
 
     try .
       lt_act = lcl_workbook_parser=>read_exclude( mt_dummy_exclude ).
-    catch lcx_error zcx_excel.
+    catch lcx_error.
       cl_abap_unit_assert=>fail( 'Unexpected error' ).
     endtry.
 
