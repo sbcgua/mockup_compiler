@@ -215,7 +215,8 @@ class lcl_app implementation.
 
 
     lv_blob  = zcl_w3mime_fs=>read_file_x( iv_path ).
-    li_excel = lcl_excel_abap2xlsx=>load( lv_blob ).
+*    li_excel = lcl_excel_abap2xlsx=>load( lv_blob ).
+    li_excel = lcl_excel_xlreader=>load( lv_blob ).
     lt_mocks = lcl_workbook_parser=>parse( li_excel ).
     lv_folder_name = lcl_utils=>get_uppercase_filename( iv_path ).
     lv_filename    = lcl_utils=>get_full_filename( iv_path ).
