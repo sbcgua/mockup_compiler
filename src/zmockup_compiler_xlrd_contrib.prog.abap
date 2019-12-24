@@ -185,155 +185,155 @@ class ZCL_XLSXREADER definition
 *  public
   create public .
 
-public section.
+  public section.
 
-  interfaces ZIF_XLSXREADER_NODE_PROCESSOR .
+    interfaces ZIF_XLSXREADER_NODE_PROCESSOR .
 
-  types:
-    begin of ty_num_format,
-      numfmtid   type i,
-      formatcode type string,
-    end of ty_num_format .
-  types:
-    tt_num_formats type table of ty_num_format with key numfmtid .
-  types:
-    ts_num_formats type sorted table of ty_num_format with unique key numfmtid .
-  types:
-    begin of ty_sheet,
-      name    type string,
-      sheetid type i,
-      id      type string,
-    end of ty_sheet .
-  types:
-    tt_sheets type table of ty_sheet with key name .
-  types:
-    begin of ty_cell_style,
-      numfmtid   type i,
-    end of ty_cell_style .
-  types:
-    tt_cell_styles type table of ty_cell_style with default key .
-  types:
-    begin of ty_raw_cell,
-      r     type string,
-      s     type i,
-      t     type string,
-      row   type string,
-      value type string,
-    end of ty_raw_cell .
-  types:
-    tt_raw_cells type standard table of ty_raw_cell with key r .
-  types:
-    begin of ty_parsing_context,
-      stage type string,
-      data  type ref to data,
-    end of ty_parsing_context .
-  types:
-    begin of ty_cell,
-      col   type i,
-      row   type i,
-      type  type c length 1,
-      style type i,
-      value type string,
-      ref   type string,
-    end of ty_cell .
-  types:
-    begin of ty_style,
-      num_format type string,
-    end of ty_style .
-  types:
-    tt_styles type standard table of ty_style with default key .
-  types:
-    tt_cells type standard table of ty_cell with key col row .
+    types:
+      begin of ty_num_format,
+        numfmtid   type i,
+        formatcode type string,
+      end of ty_num_format .
+    types:
+      tt_num_formats type table of ty_num_format with key numfmtid .
+    types:
+      ts_num_formats type sorted table of ty_num_format with unique key numfmtid .
+    types:
+      begin of ty_sheet,
+        name    type string,
+        sheetid type i,
+        id      type string,
+      end of ty_sheet .
+    types:
+      tt_sheets type table of ty_sheet with key name .
+    types:
+      begin of ty_cell_style,
+        numfmtid   type i,
+      end of ty_cell_style .
+    types:
+      tt_cell_styles type table of ty_cell_style with default key .
+    types:
+      begin of ty_raw_cell,
+        r     type string,
+        s     type i,
+        t     type string,
+        row   type string,
+        value type string,
+      end of ty_raw_cell .
+    types:
+      tt_raw_cells type standard table of ty_raw_cell with key r .
+    types:
+      begin of ty_parsing_context,
+        stage type string,
+        data  type ref to data,
+      end of ty_parsing_context .
+    types:
+      begin of ty_cell,
+        col   type i,
+        row   type i,
+        type  type c length 1,
+        style type i,
+        value type string,
+        ref   type string,
+      end of ty_cell .
+    types:
+      begin of ty_style,
+        num_format type string,
+      end of ty_style .
+    types:
+      tt_styles type standard table of ty_style with default key .
+    types:
+      tt_cells type standard table of ty_cell with key col row .
 
-  constants C_OPENXML_NAMESPACE_URI type STRING value 'http://schemas.openxmlformats.org/spreadsheetml/2006/main' ##NO_TEXT.
+    constants C_OPENXML_NAMESPACE_URI type STRING value 'http://schemas.openxmlformats.org/spreadsheetml/2006/main' ##NO_TEXT.
 
-  class-methods LOAD
-    importing
-      !IV_XDATA type XSTRING
-    returning
-      value(RO_INSTANCE) type ref to ZCL_XLSXREADER
-    raising
-      CX_OPENXML_FORMAT
-      CX_OPENXML_NOT_FOUND .
-  methods GET_SHEET
-    importing
-      !IV_NAME type STRING
-    returning
-      value(RT_CELLS) type TT_CELLS
-    raising
-      CX_OPENXML_NOT_FOUND
-      CX_OPENXML_FORMAT .
-  methods CONSTRUCTOR
-    importing
-      !IV_XDATA type XSTRING
-    raising
-      CX_OPENXML_FORMAT
-      CX_OPENXML_NOT_FOUND .
-  methods GET_SHEET_NAMES
-    returning
-      value(RT_SHEET_NAMES) type STRING_TABLE
-    raising
-      CX_OPENXML_FORMAT .
-  methods GET_STYLES
-    returning
-      value(RT_STYLES) type TT_STYLES
-    raising
-      CX_OPENXML_FORMAT
-      CX_OPENXML_NOT_FOUND .
-protected section.
-private section.
+    class-methods LOAD
+      importing
+        !IV_XDATA type XSTRING
+      returning
+        value(RO_INSTANCE) type ref to ZCL_XLSXREADER
+      raising
+        CX_OPENXML_FORMAT
+        CX_OPENXML_NOT_FOUND .
+    methods GET_SHEET
+      importing
+        !IV_NAME type STRING
+      returning
+        value(RT_CELLS) type TT_CELLS
+      raising
+        CX_OPENXML_NOT_FOUND
+        CX_OPENXML_FORMAT .
+    methods CONSTRUCTOR
+      importing
+        !IV_XDATA type XSTRING
+      raising
+        CX_OPENXML_FORMAT
+        CX_OPENXML_NOT_FOUND .
+    methods GET_SHEET_NAMES
+      returning
+        value(RT_SHEET_NAMES) type STRING_TABLE
+      raising
+        CX_OPENXML_FORMAT .
+    methods GET_STYLES
+      returning
+        value(RT_STYLES) type TT_STYLES
+      raising
+        CX_OPENXML_FORMAT
+        CX_OPENXML_NOT_FOUND .
+  protected section.
+  private section.
 
-  constants c_excldt type dats value '19000101' ##NO_TEXT.
+    constants c_excldt type dats value '19000101' ##NO_TEXT.
 
-  data mo_workbook type ref to cl_xlsx_workbookpart .
-  data mt_sheets type tt_sheets .
-  data mo_xlsx type ref to cl_xlsx_document .
-  data mt_shared_strings type string_table.
+    data mo_workbook type ref to cl_xlsx_workbookpart .
+    data mt_sheets type tt_sheets .
+    data mo_xlsx type ref to cl_xlsx_document .
+    data mt_shared_strings type string_table.
 
-  methods get_sheets
-    returning
-      value(rt_sheets) type tt_sheets
-    raising
-      cx_openxml_format .
+    methods get_sheets
+      returning
+        value(rt_sheets) type tt_sheets
+      raising
+        cx_openxml_format .
 
-  methods convert_date
-    importing
-      !iv_days type string
-    returning
-      value(rv_date) type dats .
+    methods convert_date
+      importing
+        !iv_days type string
+      returning
+        value(rv_date) type dats .
 
-  methods get_shared_string
-    importing
-      iv_index type i
-    returning
-      value(rv_str) type string.
+    methods get_shared_string
+      importing
+        iv_index type i
+      returning
+        value(rv_str) type string.
 
-  methods load_shared_strings
-    raising
-      cx_openxml_format cx_openxml_not_found.
+    methods load_shared_strings
+      raising
+        cx_openxml_format cx_openxml_not_found.
 
-  methods parse_worksheet
-    importing
-      iv_name type string
-    returning
-      value(rt_raw_cells) type tt_raw_cells
-    raising
-      cx_openxml_format cx_openxml_not_found.
+    methods parse_worksheet
+      importing
+        iv_name type string
+      returning
+        value(rt_raw_cells) type tt_raw_cells
+      raising
+        cx_openxml_format cx_openxml_not_found.
 
-  methods add_default_num_formats
-    changing ct_num_formats type tt_num_formats.
+    methods add_default_num_formats
+      changing ct_num_formats type tt_num_formats.
 
-  methods convert_raw_cells
-    importing
-      it_raw_cells type tt_raw_cells
-    returning
-      value(rt_cells) type tt_cells.
+    methods convert_raw_cells
+      importing
+        it_raw_cells type tt_raw_cells
+      returning
+        value(rt_cells) type tt_cells.
 
-  class-methods column_to_index
-    importing
-      iv_col type string
-    returning
-      value(rv_index) type i.
+    class-methods column_to_index
+      importing
+        iv_col type string
+      returning
+        value(rv_index) type i.
 
 ENDCLASS.
 
@@ -451,9 +451,10 @@ CLASS ZCL_XLSXREADER IMPLEMENTATION.
   method convert_date.
     data lv_days type i.
 
-    check iv_days co '0123456789'.
-    lv_days = iv_days.
-    rv_date = c_excldt + lv_days.
+    if iv_days co '0123456789'.
+      lv_days = iv_days.
+      rv_date = c_excldt + lv_days.
+    endif.
   endmethod.
 
 

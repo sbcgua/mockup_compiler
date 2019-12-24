@@ -1,37 +1,37 @@
 class lcl_utils definition final.
   public section.
 
-  class-methods fmt_dt
-    importing
-      iv_ts         type zcl_w3mime_poller=>ty_file_state-timestamp
-    returning
-      value(rv_str) type string.
+    class-methods fmt_dt
+      importing
+        iv_ts         type zcl_w3mime_poller=>ty_file_state-timestamp
+      returning
+        value(rv_str) type string.
 
-  class-methods is_tempfile
-    importing
-      iv_filename type string
-    returning
-      value(rv_yes) type abap_bool.
+    class-methods is_tempfile
+      importing
+        iv_filename type string
+      returning
+        value(rv_yes) type abap_bool.
 
-  class-methods sha1
-    importing
-      iv_data type xstring
-    returning
-      value(rv_hash) type hash160
-    raising
-      lcx_error.
+    class-methods sha1
+      importing
+        iv_data type xstring
+      returning
+        value(rv_hash) type hash160
+      raising
+        lcx_error.
 
-  class-methods get_uppercase_filename
-    importing
-      iv_path type string
-    returning
-      value(rv_folder_name) type string.
+    class-methods get_uppercase_filename
+      importing
+        iv_path type string
+      returning
+        value(rv_folder_name) type string.
 
-  class-methods get_full_filename
-    importing
-      iv_path type string
-    returning
-      value(rv_filename) type string.
+    class-methods get_full_filename
+      importing
+        iv_path type string
+      returning
+        value(rv_filename) type string.
 
 endclass.
 
