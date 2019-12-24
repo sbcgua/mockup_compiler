@@ -695,7 +695,16 @@ CLASS ZCL_XLSXREADER IMPLEMENTATION.
             iv_no_clear = abap_true
           importing
             es_struc = <c> ).
-        <c>-value = io_node->get_value( ).
+
+        data lo_element type ref to if_ixml_element.
+        data lo_value_node type ref to if_ixml_node.
+        lo_element ?= io_node.
+        lo_value_node = lo_element->find_from_name_ns(
+          name = 'v'
+          uri  = c_openxml_namespace_uri ).
+        if lo_value_node is bound.
+          <c>-value = lo_value_node->get_value( ).
+        endif.
 
       when others.
         assert 1 = 0.
