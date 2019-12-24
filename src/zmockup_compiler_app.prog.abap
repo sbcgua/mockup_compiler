@@ -211,9 +211,13 @@ class lcl_app implementation.
     data lt_mocks type lcl_workbook_parser=>tt_mocks.
     data lv_folder_name type string.
     data lv_filename type string.
+    data li_excel type ref to lif_excel.
+
 
     lv_blob  = zcl_w3mime_fs=>read_file_x( iv_path ).
-    lt_mocks = lcl_workbook_parser=>parse( lv_blob ).
+*    li_excel = lcl_excel_abap2xlsx=>load( lv_blob ).
+    li_excel = lcl_excel_xlreader=>load( lv_blob ).
+    lt_mocks = lcl_workbook_parser=>parse( li_excel ).
     lv_folder_name = lcl_utils=>get_uppercase_filename( iv_path ).
     lv_filename    = lcl_utils=>get_full_filename( iv_path ).
 
@@ -401,10 +405,10 @@ class lcl_app implementation.
     data l_str type string.
     try.
       l_str = mo_zip->read( c_src_files_meta_path ).
-      mo_meta = lcl_meta=>create( l_str ).
     catch zcx_w3mime_error.
-      return. " Ignore errors
+      " Ignore errors
     endtry.
+    mo_meta = lcl_meta=>create( l_str ).
   endmethod.
 
   method start_watcher.

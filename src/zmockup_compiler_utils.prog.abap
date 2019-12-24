@@ -1,37 +1,37 @@
 class lcl_utils definition final.
   public section.
 
-  class-methods fmt_dt
-    importing
-      iv_ts         type zcl_w3mime_poller=>ty_file_state-timestamp
-    returning
-      value(rv_str) type string.
+    class-methods fmt_dt
+      importing
+        iv_ts         type zcl_w3mime_poller=>ty_file_state-timestamp
+      returning
+        value(rv_str) type string.
 
-  class-methods is_tempfile
-    importing
-      iv_filename type string
-    returning
-      value(rv_yes) type abap_bool.
+    class-methods is_tempfile
+      importing
+        iv_filename type string
+      returning
+        value(rv_yes) type abap_bool.
 
-  class-methods sha1
-    importing
-      iv_data type xstring
-    returning
-      value(rv_hash) type hash160
-    raising
-      lcx_error.
+    class-methods sha1
+      importing
+        iv_data type xstring
+      returning
+        value(rv_hash) type hash160
+      raising
+        lcx_error.
 
-  class-methods get_uppercase_filename
-    importing
-      iv_path type string
-    returning
-      value(rv_folder_name) type string.
+    class-methods get_uppercase_filename
+      importing
+        iv_path type string
+      returning
+        value(rv_folder_name) type string.
 
-  class-methods get_full_filename
-    importing
-      iv_path type string
-    returning
-      value(rv_filename) type string.
+    class-methods get_full_filename
+      importing
+        iv_path type string
+      returning
+        value(rv_filename) type string.
 
 endclass.
 
@@ -66,23 +66,18 @@ class lcl_utils implementation.
 
   method sha1.
 
-    data lv_hash type hash160.
+    data lv_hash type string.
 
-    " CL_ABAP_MESSAGE_DIGEST=>CALCULATE_HASH_FOR_RAW
-
-    call function 'CALCULATE_HASH_FOR_RAW'
-      exporting
-        data           = iv_data
-      importing
-        hash           = lv_hash
-      exceptions
-        unknown_alg    = 1
-        param_error    = 2
-        internal_error = 3
-        others         = 4.
-    if sy-subrc <> 0.
+    try .
+      cl_abap_message_digest=>calculate_hash_for_raw(
+        exporting
+          if_algorithm = 'SHA1'
+          if_data      = iv_data
+        importing
+          ef_hashstring = lv_hash ).
+    catch cx_abap_message_digest.
       lcx_error=>raise( 'sha1 calculation error' ).
-    endif.
+    endtry.
 
     rv_hash = to_lower( lv_hash ).
 

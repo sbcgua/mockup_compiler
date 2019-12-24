@@ -40,6 +40,7 @@ endclass.
 **********************************************************************
 
 include zmockup_compiler_w3mi_contrib.
+include zmockup_compiler_xlrd_contrib.
 include zmockup_compiler_utils.
 include zmockup_compiler_meta.
 include zmockup_compiler_workbook_prs.

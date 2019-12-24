@@ -1,45 +1,45 @@
 class lcl_meta definition final create private.
   public section.
 
-  types ty_file_type type c length 1.
+    types ty_file_type type c length 1.
 
-  constants:
-    begin of c_type,
-      excel type ty_file_type value 'X',
-      include type ty_file_type value 'I',
-    end of c_type.
+    constants:
+      begin of c_type,
+        excel type ty_file_type value 'X',
+        include type ty_file_type value 'I',
+      end of c_type.
 
-  types:
-    begin of ty_src_timestamp,
-      type      type ty_file_type,
-      src_file  type string,
-      timestamp type char14,
-      sha1      type hash160,
-    end of ty_src_timestamp,
-    tt_src_timestamp type standard table of ty_src_timestamp with key type src_file.
+    types:
+      begin of ty_src_timestamp,
+        type      type ty_file_type,
+        src_file  type string,
+        timestamp type char14,
+        sha1      type hash160,
+      end of ty_src_timestamp,
+      tt_src_timestamp type standard table of ty_src_timestamp with key type src_file.
 
-  class-methods create
-    importing
-      iv_str type string optional
-    returning
-      value(ro_meta) type ref to lcl_meta.
+    class-methods create
+      importing
+        iv_str type string optional
+      returning
+        value(ro_meta) type ref to lcl_meta.
 
-  methods serialize
-    returning
-      value(rv_str) type string
-    raising
-      lcx_error.
+    methods serialize
+      returning
+        value(rv_str) type string
+      raising
+        lcx_error.
 
-  methods update
-    importing
-      iv_type type ty_file_type
-      iv_filename type string
-      iv_timestamp type zcl_w3mime_poller=>ty_file_state-timestamp optional
-      iv_blob type xstring
-    returning
-      value(rv_has_changed) type abap_bool
-    raising
-      lcx_error.
+    methods update
+      importing
+        iv_type type ty_file_type
+        iv_filename type string
+        iv_timestamp type zcl_w3mime_poller=>ty_file_state-timestamp optional
+        iv_blob type xstring
+      returning
+        value(rv_has_changed) type abap_bool
+      raising
+        lcx_error.
 
   private section.
     data mt_src_ts type tt_src_timestamp.
