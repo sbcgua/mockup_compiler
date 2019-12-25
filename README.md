@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.com/sbcgua/mockup_compiler.svg?branch=master)](https://travis-ci.com/sbcgua/mockup_compiler)
+![Version](https://img.shields.io/github/v/tag/sbcgua/mockup_compiler.svg)
 
 # ABAP mockup compiler for Mockup loader
 
