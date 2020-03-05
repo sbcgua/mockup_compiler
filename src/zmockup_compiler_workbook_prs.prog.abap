@@ -92,7 +92,7 @@ class lcl_workbook_parser definition final
       returning
         value(rv_date) type string
       raising
-        lcx_excel.
+        cx_sy_conversion_error.
 
     class-methods read_row
       importing
@@ -175,15 +175,24 @@ class lcl_workbook_parser implementation.
     lt_date_styles = find_date_styles( ii_excel ).
 
     " convert sheets
+    data lx type ref to lcx_excel.
     field-symbols <mock> like line of rt_mocks.
-    loop at lt_sheets_to_save assigning <sheet_name>.
-      read table lt_worksheets with key table_line = <sheet_name> assigning <ws>.
-      append initial line to rt_mocks assigning <mock>.
-      <mock>-name = <sheet_name>.
-      <mock>-data = convert_sheet(
-        it_content     = ii_excel->get_sheet_content( <sheet_name> )
-        it_date_styles = lt_date_styles ).
-    endloop.
+    try .
+      loop at lt_sheets_to_save assigning <sheet_name>.
+        read table lt_worksheets with key table_line = <sheet_name> assigning <ws>.
+        append initial line to rt_mocks assigning <mock>.
+        <mock>-name = <sheet_name>.
+        <mock>-data = convert_sheet(
+          it_content     = ii_excel->get_sheet_content( <sheet_name> )
+          it_date_styles = lt_date_styles ).
+      endloop.
+    catch lcx_excel into lx.
+      if lx->rc = 'date'.
+        lcx_excel=>excel_error( |{ lx->msg } @{ <sheet_name> }| ).
+      else.
+        raise exception lx.
+      endif.
+    endtry.
 
   endmethod.  " parse.
 
@@ -231,23 +240,19 @@ class lcl_workbook_parser implementation.
     endif.
 
     " this code is taken from abap2xlsx
-    try.
-      constants c_excel_baseline_date type d value '19000101'. "#EC NOTEXT
-      constants c_excel_1900_leap_year type d value '19000228'. "#EC NOTEXT
-      data lv_date_int type i.
-      data lv_date type d.
+    constants c_excel_baseline_date type d value '19000101'. "#EC NOTEXT
+    constants c_excel_1900_leap_year type d value '19000228'. "#EC NOTEXT
+    data lv_date_int type i.
+    data lv_date type d.
 
-      lv_date_int = iv_value.
-      lv_date     = lv_date_int + c_excel_baseline_date - 2.
-      " Needed hack caused by the problem that:
-      " Excel 2000 incorrectly assumes that the year 1900 is a leap year
-      " http://support.microsoft.com/kb/214326/en-us
-      if lv_date < c_excel_1900_leap_year.
-        lv_date = lv_date + 1.
-      endif.
-    catch cx_sy_conversion_error.
-      lcx_excel=>excel_error( 'convert_to_date: index out of bounds' ).
-    endtry.
+    lv_date_int = iv_value.
+    lv_date     = lv_date_int + c_excel_baseline_date - 2.
+    " Needed hack caused by the problem that:
+    " Excel 2000 incorrectly assumes that the year 1900 is a leap year
+    " http://support.microsoft.com/kb/214326/en-us
+    if lv_date < c_excel_1900_leap_year.
+      lv_date = lv_date + 1.
+    endif.
     " end of code, taken from abap2xlsx
 
     rv_date = lv_date.
@@ -264,20 +269,26 @@ class lcl_workbook_parser implementation.
     data last_col type i.
     data tmp type string.
     last_col = i_colmin - 1.
-    loop at it_content assigning <c> where cell_row = i_row and cell_column between i_colmin and i_colmax.
-      do <c>-cell_column - last_col - 1 times. " fill blanks
-        append initial line to rt_values.
-      enddo.
-      last_col = <c>-cell_column.
-      tmp      = <c>-cell_value.
-      if it_date_styles is supplied and <c>-cell_style is not initial.
-        read table it_date_styles with key table_line = <c>-cell_style transporting no fields.
-        if sy-subrc is initial.
-          tmp = convert_to_date( tmp ).
+
+    try.
+      loop at it_content assigning <c> where cell_row = i_row and cell_column between i_colmin and i_colmax.
+        do <c>-cell_column - last_col - 1 times. " fill blanks
+          append initial line to rt_values.
+        enddo.
+        last_col = <c>-cell_column.
+        tmp      = <c>-cell_value.
+        if it_date_styles is supplied and <c>-cell_style is not initial.
+          read table it_date_styles with key table_line = <c>-cell_style transporting no fields.
+          if sy-subrc is initial.
+            tmp = convert_to_date( tmp ).
+          endif.
         endif.
-      endif.
-      append tmp to rt_values.
-    endloop.
+        append tmp to rt_values.
+      endloop.
+    catch cx_sy_conversion_error.
+      lcx_excel=>excel_error( msg = |expected date @R{ i_row }C{ last_col }| rc = 'date' ).
+    endtry.
+
     if last_col < i_colmax and i_colmax is supplied. " fill blanks
       do i_colmax - last_col times.
         append initial line to rt_values.

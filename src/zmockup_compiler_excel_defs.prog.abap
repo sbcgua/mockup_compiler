@@ -3,6 +3,7 @@ class lcx_excel definition inheriting from lcx_error.
     class-methods excel_error
       importing
         msg type string
+        rc  type ty_rc optional
       raising
         lcx_excel.
 endclass.
@@ -11,6 +12,7 @@ class lcx_excel implementation.
   method excel_error.
     raise exception type lcx_excel
       exporting
+        rc  = rc
         msg = msg.
   endmethod.
 endclass.

@@ -112,21 +112,22 @@ class ltcl_workbook_parser_test definition final for testing
     methods convert_sheet for testing.
     methods read_exclude for testing.
     methods integration_test for testing raising lcx_error.
+    methods date_processing for testing raising lcx_error.
 
 endclass.
 
 class ltcl_workbook_parser_test implementation.
 
+  define _add_cell.
+    cell-cell_row = &2.
+    cell-cell_column = &3.
+    cell-cell_value = &4.
+    insert cell into table &1.
+  end-of-definition.
+
   method setup.
 
     data cell like line of mt_dummy_sheet.
-
-    define _add_cell.
-      cell-cell_row = &2.
-      cell-cell_column = &3.
-      cell-cell_value = &4.
-      insert cell into table &1.
-    end-of-definition.
 
     _add_cell mt_dummy_sheet 1 1 '_idx'.
     _add_cell mt_dummy_sheet 1 2 'col1'.
@@ -165,6 +166,52 @@ class ltcl_workbook_parser_test implementation.
     _add_cell mt_dummy_exclude 3 1 'SheetY'.
 
   endmethod.   " setup.
+
+  method date_processing.
+
+    data lx type ref to cx_root.
+    data lt_act type string_table.
+    data lt_exp type string_table.
+    data lt_sheet like mt_dummy_sheet.
+    data cell like line of lt_sheet.
+    data lt_date_styles type lcl_workbook_parser=>ts_style_list.
+
+    cell-cell_row = 1.
+    cell-cell_column = 1.
+    cell-cell_value = '43895'.
+    cell-cell_style = 10.
+    insert cell into table lt_sheet.
+
+    insert 10 into table lt_date_styles.
+
+    clear lt_exp.
+    append '05.03.2020' to lt_exp.
+
+    lt_act = lcl_workbook_parser=>read_row(
+      it_content     = lt_sheet
+      i_row          = 1
+      it_date_styles = lt_date_styles ).
+    cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
+
+    cell-cell_row = 1.
+    cell-cell_column = 2.
+    cell-cell_value = 'X'.
+    cell-cell_style = 10.
+    insert cell into table lt_sheet.
+
+    try .
+      lcl_workbook_parser=>read_row(
+        it_content     = lt_sheet
+        i_row          = 1
+        it_date_styles = lt_date_styles ).
+      cl_abap_unit_assert=>fail( ).
+    catch lcx_excel into lx.
+      cl_abap_unit_assert=>assert_equals(
+        act = lx->get_text( )
+        exp = 'expected date @R1C2').
+    endtry.
+
+  endmethod.
 
   method read_row.
     data lx type ref to cx_root.
