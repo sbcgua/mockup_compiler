@@ -208,7 +208,7 @@ class ltcl_workbook_parser_test implementation.
     catch lcx_excel into lx.
       cl_abap_unit_assert=>assert_equals(
         act = lx->get_text( )
-        exp = 'expected date @R1C2').
+        exp = 'expected date @R1C2' ).
     endtry.
 
   endmethod.
