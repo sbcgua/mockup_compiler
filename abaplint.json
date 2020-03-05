@@ -63,9 +63,6 @@
       "enabled": true,
       "lines":4
     },
-    "definitions_top":{  
-      "enabled": false
-    },
     "indentation":{  
       "enabled": true,
       "alignTryCatch": true,
