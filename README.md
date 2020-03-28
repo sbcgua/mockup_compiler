@@ -4,6 +4,10 @@
 
 # ABAP mockup compiler for Mockup loader
 
+**Deprecated in favor of combined package - https://github.com/sbcgua/mockup_loader_toolkit**
+
+----
+
 SAP native tool to compile zip from excels for [Mockup loader](https://github.com/sbcgua/mockup_loader) and upload it to mime storage. Supports watching (re-process on file change).
 
 So the process is:
